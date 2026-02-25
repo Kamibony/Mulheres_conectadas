@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import sys
 
 # Mocking dependencies before importing main.py
+sys.modules['dotenv'] = MagicMock()
 mock_firebase_functions = MagicMock()
 
 def mock_on_call_decorator(*args, **kwargs):

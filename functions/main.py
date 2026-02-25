@@ -1,5 +1,9 @@
 import os
-from firebase_functions import https_fn
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from firebase_functions import https_fn, options
 from firebase_admin import initialize_app, firestore
 from google.cloud.firestore_v1.vector import Vector
 from google.cloud.firestore_v1.base_vector_query import DistanceMeasure
@@ -20,12 +24,12 @@ MAX_TEXT_LENGTH = 2000
 
 # Inicializácia Vertex AI (použije ID projektu z prostredia Firebase)
 # Tu musíš zadať lokáciu, ideálne rovnakú, akú si vybral pri tvorbe Firestore
-project_id = os.environ.get("APP_PROJECT_ID")
+project_id = os.environ.get("APP_PROJECT_ID") or os.environ.get("GOOGLE_CLOUD_PROJECT")
 if not project_id:
     raise ValueError("APP_PROJECT_ID environment variable not set.")
 vertexai.init(project=project_id, location="us-central1") # Zmeň na "southamerica-east1", ak si databázu dal do Brazílie
 
-@https_fn.on_call()
+@https_fn.on_call(memory=options.MemoryOption.MB_1024)
 def share_experience(req: https_fn.CallableRequest) -> any:
     """
     Prijme text od používateľky, vytvorí z neho vektor (embedding)
