@@ -130,5 +130,20 @@ class TestShareExperience(unittest.TestCase):
         self.assertIn("error", result)
         self.assertEqual(result["error"], "O texto é muito curto.")
 
+    def test_share_experience_text_too_long(self):
+        """Test share_experience with text that is too long"""
+        # Setup mock request
+        long_text = "a" * (main.MAX_TEXT_LENGTH + 1)
+        mock_req = MagicMock()
+        mock_req.data = {"text": long_text}
+        mock_req.auth = None
+
+        # Call the function
+        result = share_experience(mock_req)
+
+        # Assertions
+        self.assertIn("error", result)
+        self.assertEqual(result["error"], "O texto é muito longo.")
+
 if __name__ == '__main__':
     unittest.main()

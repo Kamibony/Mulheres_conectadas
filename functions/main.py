@@ -12,6 +12,7 @@ db = firestore.client()
 
 # Konštanty pre validáciu a vyhľadávanie
 MIN_TEXT_LENGTH = 10
+MAX_TEXT_LENGTH = 2000
 
 # Inicializácia Vertex AI (použije ID projektu z prostredia Firebase)
 # Tu musíš zadať lokáciu, ideálne rovnakú, akú si vybral pri tvorbe Firestore
@@ -30,6 +31,9 @@ def share_experience(req: https_fn.CallableRequest) -> any:
     
     if not text or len(text) < MIN_TEXT_LENGTH:
         return {"error": "O texto é muito curto."} # Text je príliš krátky
+
+    if len(text) > MAX_TEXT_LENGTH:
+        return {"error": "O texto é muito longo."} # Text je príliš dlhý
         
     # Anonymné ID (ak je používateľka prihlásená anonymne)
     user_id = req.auth.uid if req.auth else "anonymous"
