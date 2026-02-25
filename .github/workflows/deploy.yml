@@ -43,6 +43,8 @@ jobs:
 
       - name: Test Backend Imports
         working-directory: functions
+        env:
+          GCP_PROJECT: "mulheres-conectadas-c1e74"
         run: |
           ./venv/bin/python -c "import main"
 
