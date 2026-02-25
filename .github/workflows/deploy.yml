@@ -54,6 +54,7 @@ jobs:
       - name: Deploy to Firebase
         env:
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
+          GCP_PROJECT: "mulheres-conectadas-c1e74"
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}' > /tmp/gcp-key.json
           firebase deploy --only functions,hosting --non-interactive
