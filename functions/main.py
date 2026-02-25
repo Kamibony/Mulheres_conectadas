@@ -7,8 +7,12 @@ import vertexai
 from vertexai.language_models import TextEmbeddingModel
 
 # Inicializácia Firebase a Firestore
-initialize_app()
-db = firestore.client()
+try:
+    initialize_app()
+    db = firestore.client()
+except Exception as e:
+    print(f"Warning: Firebase/Firestore initialization failed: {e}")
+    db = None
 
 # Konštanty pre validáciu a vyhľadávanie
 MIN_TEXT_LENGTH = 10
@@ -30,6 +34,9 @@ def share_experience(req: https_fn.CallableRequest) -> any:
     
     if not text or len(text) < MIN_TEXT_LENGTH:
         return {"error": "O texto é muito curto."} # Text je príliš krátky
+
+    if db is None:
+        return {"error": "Chyba pripojenia k databáze."}
         
     # Anonymné ID (ak je používateľka prihlásená anonymne)
     user_id = req.auth.uid if req.auth else "anonymous"
