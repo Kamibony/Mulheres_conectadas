@@ -17,6 +17,19 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install Dependencies & Build Frontend
+        # Tieto premenné Vite zoberie a vloží do verejného webu
+        env:
+          VITE_FIREBASE_API_KEY: "AIzaSyCy61A0IUU1s2aw9q3Yc97IwBgDE0KNzvY"
+          VITE_FIREBASE_AUTH_DOMAIN: "mulheres-conectadas-c1e74.firebaseapp.com"
+          VITE_FIREBASE_PROJECT_ID: "mulheres-conectadas-c1e74"
+          VITE_FIREBASE_STORAGE_BUCKET: "mulheres-conectadas-c1e74.firebasestorage.app"
+          VITE_FIREBASE_MESSAGING_SENDER_ID: "213620339176"
+          VITE_FIREBASE_APP_ID: "1:213620339176:web:98a038e39668b01a35745d"
+        run: |
+          npm install
+          npm run build
+
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
@@ -27,5 +40,5 @@ jobs:
           # Vytvorenie dočasného súboru s kľúčom z GitHub Secrets
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}' > /tmp/gcp-key.json
           
-          # Nasadenie Python backendu aj frontendu
+          # Nasadenie Python backendu aj zbuildovaného frontendu
           firebase deploy --only functions,hosting --non-interactive
