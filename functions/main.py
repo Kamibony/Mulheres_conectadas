@@ -56,7 +56,7 @@ def share_experience(req: https_fn.CallableRequest) -> any:
             vector_field="embedding",
             query_vector=Vector(vector_values),
             distance_measure=DistanceMeasure.COSINE,
-            limit=5
+            limit=6
         )
         
         docs = vector_query.stream()
@@ -70,6 +70,9 @@ def share_experience(req: https_fn.CallableRequest) -> any:
                     "id": doc.id,
                     "text": doc_data.get("text")
                 })
+
+            if len(matches) >= 5:
+                break
                 
         # 5. Vrátenie výsledkov na frontend
         return {
