@@ -7,8 +7,12 @@ import vertexai
 from vertexai.language_models import TextEmbeddingModel
 
 # Inicializácia Firebase a Firestore
-initialize_app()
-db = firestore.client()
+try:
+    initialize_app()
+    db = firestore.client()
+except Exception as e:
+    print(f"Warning: Firebase/Firestore initialization failed: {e}")
+    db = None
 
 # Konštanty pre validáciu a vyhľadávanie
 MIN_TEXT_LENGTH = 10
