@@ -20,9 +20,9 @@ MAX_TEXT_LENGTH = 2000
 
 # Inicializácia Vertex AI (použije ID projektu z prostredia Firebase)
 # Tu musíš zadať lokáciu, ideálne rovnakú, akú si vybral pri tvorbe Firestore
-project_id = os.environ.get("GCP_PROJECT") 
+project_id = os.environ.get("APP_PROJECT_ID")
 if not project_id:
-    raise ValueError("GCP_PROJECT environment variable not set.")
+    raise ValueError("APP_PROJECT_ID environment variable not set.")
 vertexai.init(project=project_id, location="us-central1") # Zmeň na "southamerica-east1", ak si databázu dal do Brazílie
 
 @https_fn.on_call()
