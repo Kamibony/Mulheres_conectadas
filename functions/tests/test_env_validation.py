@@ -18,12 +18,12 @@ class TestVulnerability(unittest.TestCase):
 
     @patch.dict('os.environ', {}, clear=True)
     def test_main_raises_error_without_gcp_project(self):
-        # Verify that importing main without GCP_PROJECT raises ValueError
+        # Verify that importing main without APP_PROJECT_ID raises ValueError
         with self.assertRaises(ValueError) as cm:
             import main
 
         # Check the error message
-        self.assertIn("GCP_PROJECT environment variable not set", str(cm.exception))
+        self.assertIn("APP_PROJECT_ID environment variable not set", str(cm.exception))
 
 if __name__ == '__main__':
     unittest.main()

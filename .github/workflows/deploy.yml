@@ -44,7 +44,7 @@ jobs:
       - name: Test Backend Imports
         working-directory: functions
         env:
-          GCP_PROJECT: "mulheres-conectadas-c1e74"
+          APP_PROJECT_ID: "mulheres-conectadas-c1e74"
         run: |
           ./venv/bin/python -c "import main"
 
@@ -53,7 +53,7 @@ jobs:
 
       - name: Create Functions Environment File
         working-directory: functions
-        run: echo "GCP_PROJECT=mulheres-conectadas-c1e74" > .env
+        run: echo "APP_PROJECT_ID=mulheres-conectadas-c1e74" > .env
 
       - name: Deploy to Firebase
         env:

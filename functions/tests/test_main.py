@@ -32,7 +32,7 @@ sys.modules['vertexai.language_models'] = mock_vertexai_models
 # Now import the function to test
 import os
 # Set the environment variable before importing main to prevent ValueError
-os.environ["GCP_PROJECT"] = "test-project"
+os.environ["APP_PROJECT_ID"] = "test-project"
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import main
 from main import share_experience
