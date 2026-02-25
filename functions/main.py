@@ -10,6 +10,9 @@ from vertexai.language_models import TextEmbeddingModel
 initialize_app()
 db = firestore.client()
 
+# Konštanty pre validáciu a vyhľadávanie
+MIN_TEXT_LENGTH = 10
+
 # Inicializácia Vertex AI (použije ID projektu z prostredia Firebase)
 # Tu musíš zadať lokáciu, ideálne rovnakú, akú si vybral pri tvorbe Firestore
 project_id = os.environ.get("GCP_PROJECT") 
@@ -25,7 +28,7 @@ def share_experience(req: https_fn.CallableRequest) -> any:
     data = req.data
     text = data.get("text")
     
-    if not text or len(text) < 10:
+    if not text or len(text) < MIN_TEXT_LENGTH:
         return {"error": "O texto é muito curto."} # Text je príliš krátky
         
     # Anonymné ID (ak je používateľka prihlásená anonymne)
