@@ -18,7 +18,6 @@ jobs:
           node-version: '20'
 
       - name: Install Dependencies & Build Frontend
-        # Tieto premenné Vite zoberie a vloží do verejného webu
         env:
           VITE_FIREBASE_API_KEY: "AIzaSyCy61A0IUU1s2aw9q3Yc97IwBgDE0KNzvY"
           VITE_FIREBASE_AUTH_DOMAIN: "mulheres-conectadas-c1e74.firebaseapp.com"
@@ -30,6 +29,18 @@ jobs:
           npm install
           npm run build
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Backend Dependencies
+        working-directory: functions
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
@@ -37,8 +48,5 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
         run: |
-          # Vytvorenie dočasného súboru s kľúčom z GitHub Secrets
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}' > /tmp/gcp-key.json
-          
-          # Nasadenie Python backendu aj zbuildovaného frontendu
           firebase deploy --only functions,hosting --non-interactive
