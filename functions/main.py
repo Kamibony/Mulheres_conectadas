@@ -29,7 +29,7 @@ if not project_id:
     raise ValueError("APP_PROJECT_ID environment variable not set.")
 vertexai.init(project=project_id, location="us-central1") # Zmeň na "southamerica-east1", ak si databázu dal do Brazílie
 
-@https_fn.on_call(memory=1024)
+@https_fn.on_call(region="southamerica-east1", memory=1024)
 def share_experience(req: https_fn.CallableRequest) -> any:
     """
     Prijme text od používateľky, vytvorí z neho vektor (embedding)
