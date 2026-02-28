@@ -13,6 +13,14 @@ def mock_on_call_decorator(*args, **kwargs):
 
 mock_firebase_functions.https_fn.on_call.side_effect = mock_on_call_decorator
 
+class MockHttpsError(Exception):
+    def __init__(self, code, message):
+        self.code = code
+        self.message = message
+
+mock_firebase_functions.https_fn.HttpsError = MockHttpsError
+mock_firebase_functions.https_fn.FunctionsErrorCode.INVALID_ARGUMENT = "INVALID_ARGUMENT"
+
 mock_firebase_admin = MagicMock()
 mock_firestore = MagicMock()
 mock_vertexai = MagicMock()
@@ -126,12 +134,13 @@ class TestShareExperience(unittest.TestCase):
         mock_req.data = {"text": "Short"}
         mock_req.auth = None
 
-        # Call the function
-        result = share_experience(mock_req)
+        # Call the function and expect HttpsError
+        with self.assertRaises(main.https_fn.HttpsError) as context:
+            share_experience(mock_req)
 
         # Assertions
-        self.assertIn("error", result)
-        self.assertEqual(result["error"], "O texto é muito curto.")
+        self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
+        self.assertEqual(context.exception.message, "O texto é muito curto.")
 
     def test_share_experience_text_too_long(self):
         """Test share_experience with text that is too long"""
@@ -141,12 +150,13 @@ class TestShareExperience(unittest.TestCase):
         mock_req.data = {"text": long_text}
         mock_req.auth = None
 
-        # Call the function
-        result = share_experience(mock_req)
+        # Call the function and expect HttpsError
+        with self.assertRaises(main.https_fn.HttpsError) as context:
+            share_experience(mock_req)
 
         # Assertions
-        self.assertIn("error", result)
-        self.assertEqual(result["error"], "O texto é muito longo.")
+        self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
+        self.assertEqual(context.exception.message, "O texto é muito longo.")
 
 if __name__ == '__main__':
     unittest.main()
