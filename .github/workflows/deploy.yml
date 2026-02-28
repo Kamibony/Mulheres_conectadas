@@ -60,4 +60,4 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}' > /tmp/gcp-key.json
-          firebase deploy --only functions,hosting,firestore:indexes --non-interactive --force
+          firebase deploy --only functions,hosting --non-interactive --force
