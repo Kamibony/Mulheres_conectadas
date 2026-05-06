@@ -47,17 +47,15 @@ import main
 from main import share_experience
 
 class TestShareExperience(unittest.TestCase):
-    @patch('main.TextEmbeddingModel')
-    def test_share_experience_anonymous(self, mock_model_class):
+    def test_share_experience_anonymous(self):
         """Test share_experience with an anonymous user (req.auth is None)"""
         # Setup mock request
         mock_req = MagicMock()
         mock_req.data = {"text": "This is a long enough text for testing."}
         mock_req.auth = None
 
-        # Setup mock Vertex AI model
-        mock_model = MagicMock()
-        mock_model_class.from_pretrained.return_value = mock_model
+        # Setup mock Vertex AI model (already initialized in global scope of main)
+        mock_model = main.embedding_model
         mock_embedding = MagicMock()
         mock_embedding.values = [0.1, 0.2, 0.3]
         mock_model.get_embeddings.return_value = [mock_embedding]
@@ -87,8 +85,7 @@ class TestShareExperience(unittest.TestCase):
         added_post = args[0]
         self.assertEqual(added_post["authorId"], "anonymous")
 
-    @patch('main.TextEmbeddingModel')
-    def test_share_experience_authenticated(self, mock_model_class):
+    def test_share_experience_authenticated(self):
         """Test share_experience with an authenticated user"""
         # Setup mock request
         mock_req = MagicMock()
@@ -97,8 +94,7 @@ class TestShareExperience(unittest.TestCase):
         mock_req.auth.uid = "user123"
 
         # Setup mock Vertex AI model
-        mock_model = MagicMock()
-        mock_model_class.from_pretrained.return_value = mock_model
+        mock_model = main.embedding_model
         mock_embedding = MagicMock()
         mock_embedding.values = [0.1, 0.2, 0.3]
         mock_model.get_embeddings.return_value = [mock_embedding]
