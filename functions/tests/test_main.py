@@ -20,6 +20,7 @@ class MockHttpsError(Exception):
 
 mock_firebase_functions.https_fn.HttpsError = MockHttpsError
 mock_firebase_functions.https_fn.FunctionsErrorCode.INVALID_ARGUMENT = "INVALID_ARGUMENT"
+mock_firebase_functions.https_fn.FunctionsErrorCode.UNAUTHENTICATED = "UNAUTHENTICATED"
 
 mock_firebase_admin = MagicMock()
 mock_firestore = MagicMock()
@@ -47,45 +48,21 @@ import main
 from main import share_experience
 
 class TestShareExperience(unittest.TestCase):
-    @patch('main.TextEmbeddingModel')
-    def test_share_experience_anonymous(self, mock_model_class):
-        """Test share_experience with an anonymous user (req.auth is None)"""
+    def test_share_experience_unauthenticated(self):
+        """Test share_experience with an unauthenticated user (req.auth is None)"""
         # Setup mock request
         mock_req = MagicMock()
         mock_req.data = {"text": "This is a long enough text for testing."}
         mock_req.auth = None
 
-        # Setup mock Vertex AI model
-        mock_model = MagicMock()
-        mock_model_class.from_pretrained.return_value = mock_model
-        mock_embedding = MagicMock()
-        mock_embedding.values = [0.1, 0.2, 0.3]
-        mock_model.get_embeddings.return_value = [mock_embedding]
-
-        # Setup mock Firestore
-        mock_posts_ref = MagicMock()
-        mock_db.collection.return_value = mock_posts_ref
-        mock_doc_ref = MagicMock()
-        mock_doc_ref.id = "new_post_id"
-        mock_posts_ref.add.return_value = (None, mock_doc_ref)
-
-        # Setup mock vector query
-        mock_vector_query = MagicMock()
-        mock_posts_ref.find_nearest.return_value = mock_vector_query
-        mock_vector_query.stream.return_value = []
-
-        # Call the function
-        result = share_experience(mock_req)
+        # Call the function and expect HttpsError
+        with self.assertRaises(main.https_fn.HttpsError) as context:
+            share_experience(mock_req)
 
         # Assertions
-        self.assertTrue(result.get("success"), f"Expected success but got {result}")
-        self.assertEqual(result.get("myPostId"), "new_post_id")
+        self.assertEqual(context.exception.code, "UNAUTHENTICATED")
+        self.assertEqual(context.exception.message, "Usuária não autenticada.")
 
-        # Check if authorId was "anonymous"
-        self.assertTrue(mock_posts_ref.add.called)
-        args, _ = mock_posts_ref.add.call_args
-        added_post = args[0]
-        self.assertEqual(added_post["authorId"], "anonymous")
 
     @patch('main.TextEmbeddingModel')
     def test_share_experience_authenticated(self, mock_model_class):
@@ -132,7 +109,7 @@ class TestShareExperience(unittest.TestCase):
         # Setup mock request
         mock_req = MagicMock()
         mock_req.data = {"text": "Short"}
-        mock_req.auth = None
+        mock_req.auth = MagicMock()
 
         # Call the function and expect HttpsError
         with self.assertRaises(main.https_fn.HttpsError) as context:
@@ -148,7 +125,7 @@ class TestShareExperience(unittest.TestCase):
         long_text = "a" * (main.MAX_TEXT_LENGTH + 1)
         mock_req = MagicMock()
         mock_req.data = {"text": long_text}
-        mock_req.auth = None
+        mock_req.auth = MagicMock()
 
         # Call the function and expect HttpsError
         with self.assertRaises(main.https_fn.HttpsError) as context:
