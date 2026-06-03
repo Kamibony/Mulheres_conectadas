@@ -5,53 +5,8 @@ import os
 
 class TestShareExperience(unittest.TestCase):
     def setUp(self):
-        super().setUp()
-
-        # Clean up modules
-        for mod in ['main', 'firebase_functions', 'firebase_admin', 'google.cloud.firestore_v1.vector', 'google.cloud.firestore_v1.base_vector_query', 'vertexai', 'vertexai.language_models', 'dotenv']:
-            if mod in sys.modules:
-                del sys.modules[mod]
-
-        # Mocks
-        self.mock_dotenv = MagicMock()
-        sys.modules['dotenv'] = self.mock_dotenv
-
-        self.mock_firebase_functions = MagicMock()
-        def mock_on_call_decorator(*args, **kwargs):
-            def wrapper(func):
-                return func
-            return wrapper
-        self.mock_firebase_functions.https_fn.on_call.side_effect = mock_on_call_decorator
-
-        class MockHttpsError(Exception):
-            def __init__(self, code, message):
-                self.code = code
-                self.message = message
-        self.mock_firebase_functions.https_fn.HttpsError = MockHttpsError
-        self.mock_firebase_functions.https_fn.FunctionsErrorCode.INVALID_ARGUMENT = "INVALID_ARGUMENT"
-        sys.modules['firebase_functions'] = self.mock_firebase_functions
-
-        self.mock_firebase_admin = MagicMock()
-        self.mock_firestore = MagicMock()
-        self.mock_db = MagicMock()
-        self.mock_firestore.client.return_value = self.mock_db
-        self.mock_firebase_admin.firestore = self.mock_firestore
-        sys.modules['firebase_admin'] = self.mock_firebase_admin
-
-        sys.modules['google.cloud.firestore_v1.vector'] = MagicMock()
-        sys.modules['google.cloud.firestore_v1.base_vector_query'] = MagicMock()
-
-        self.mock_vertexai = MagicMock()
-        sys.modules['vertexai'] = self.mock_vertexai
-
-        self.mock_vertexai_models = MagicMock()
-        sys.modules['vertexai.language_models'] = self.mock_vertexai_models
-
-        # Import main
-        os.environ["APP_PROJECT_ID"] = "test-project"
-        sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-        import main
-        self.main = main
+        # Reset the global model before each test
+        main._text_embedding_model = None
 
     @patch('main.TextEmbeddingModel')
     def test_share_experience_anonymous(self, mock_model_class):
