@@ -21,3 +21,35 @@ export const shareExperienceApi = httpsCallable<ShareExperienceRequest, ShareExp
   functions,
   "share_experience"
 );
+
+
+export interface StartChatRequest {
+  target_post_id: string;
+}
+
+export interface StartChatResponse {
+  success?: boolean;
+  chatId?: string;
+  error?: string;
+}
+
+export const startChatApi = httpsCallable<StartChatRequest, StartChatResponse>(
+  functions,
+  "start_chat"
+);
+
+export interface RequestRevealRequest {
+  chatId: string;
+  identity: string;
+}
+
+export interface RequestRevealResponse {
+  success?: boolean;
+  status?: string;
+  error?: string;
+}
+
+export const requestRevealApi = httpsCallable<RequestRevealRequest, RequestRevealResponse>(
+  functions,
+  "request_reveal"
+);
