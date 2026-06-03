@@ -127,6 +127,21 @@ class TestShareExperience(unittest.TestCase):
         added_post = args[0]
         self.assertEqual(added_post["authorId"], "user123")
 
+    def test_share_experience_text_invalid_type(self):
+        """Test share_experience with text that is not a string"""
+        # Setup mock request
+        mock_req = MagicMock()
+        mock_req.data = {"text": {"not": "a string"}}
+        mock_req.auth = None
+
+        # Call the function and expect HttpsError
+        with self.assertRaises(main.https_fn.HttpsError) as context:
+            share_experience(mock_req)
+
+        # Assertions
+        self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
+        self.assertEqual(context.exception.message, "O texto fornecido deve ser uma string.")
+
     def test_share_experience_text_too_short(self):
         """Test share_experience with text that is too short"""
         # Setup mock request

@@ -39,6 +39,12 @@ def share_experience(req: https_fn.CallableRequest) -> any:
     data = req.data
     text = data.get("text")
     
+    if not isinstance(text, str):
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="O texto fornecido deve ser uma string."
+        )
+
     if not text or len(text) < MIN_TEXT_LENGTH:
         raise https_fn.HttpsError(
             code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
