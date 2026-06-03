@@ -8,7 +8,13 @@ import { Spinner } from '../components/Spinner';
 import { Card } from '../components/Card';
 import { AlertCircle, ArrowRight } from 'lucide-react';
 
-export const Home: React.FC = () => {
+interface HomeProps {
+  onStartChat: (targetPostId: string) => void;
+  isStartingChat: boolean;
+  startingChatId: string | null;
+}
+
+export const Home: React.FC<HomeProps> = ({ onStartChat, isStartingChat, startingChatId }) => {
   const { loading: authLoading } = useAuth();
   const { share, state, resonances, error, reset } = useResonance();
   const [text, setText] = useState('');
@@ -83,7 +89,13 @@ export const Home: React.FC = () => {
 
               <div className="space-y-4">
                 {resonances.map((resonance) => (
-                  <Card key={resonance.id} text={resonance.text} />
+                  <Card
+                    key={resonance.id}
+                    id={resonance.id}
+                    text={resonance.text}
+                    onChat={onStartChat}
+                    isChatLoading={isStartingChat && startingChatId === resonance.id}
+                  />
                 ))}
               </div>
 
