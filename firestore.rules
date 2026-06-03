@@ -2,6 +2,22 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    match /chats/{chatId} {
+      allow read: if request.auth != null && request.auth.uid in resource.data.users;
+      // Note: we don't allow clients to write directly to the chats document, we use Cloud Functions
+
+      match /messages/{messageId} {
+        allow read, write: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.users;
+      }
+
+      match /identities/{docId} {
+        allow read: if request.auth != null
+                    && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.users
+                    && get(/databases/$(database)/documents/chats/$(chatId)).data.status == 'revealed';
+      }
+    }
+
     // Deny all read and write access by default.
     // Cloud Functions use the Firebase Admin SDK, which bypasses these rules.
     match /{document=**} {
