@@ -47,6 +47,10 @@ import main
 from main import share_experience
 
 class TestShareExperience(unittest.TestCase):
+    def setUp(self):
+        # Reset the global model before each test
+        main._text_embedding_model = None
+
     @patch('main.TextEmbeddingModel')
     def test_share_experience_anonymous(self, mock_model_class):
         """Test share_experience with an anonymous user (req.auth is None)"""
