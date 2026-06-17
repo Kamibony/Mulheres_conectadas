@@ -24,8 +24,49 @@ export const Chat: React.FC<ChatProps> = ({ chatId, onBack }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-  }, [messages]);
+    if (!user) return;
+
+    // Listen to chat document
+    const unsubscribeChat = onSnapshot(doc(db, 'chats', chatId), async (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as ChatData;
+        setChatData(data);
+
+        if (data.status === 'revealed') {
+          // Fetch identities if revealed
+          const fetchIdentities = async () => {
+            const newIdentities: Record<string, string> = {};
+            await Promise.all(
+              data.users.map(async (uid) => {
+                const identityDoc = await getDoc(doc(db, 'chats', chatId, 'identities', uid));
+                if (identityDoc.exists()) {
+                  newIdentities[uid] = identityDoc.data().identity;
+                }
+              })
+            );
+            setIdentities(newIdentities);
+          };
+          fetchIdentities();
+        }
+      }
+    });
+
+    // Listen to messages
+    const q = query(collection(db, 'chats', chatId, 'messages'), orderBy('timestamp', 'asc'));
+    const unsubscribeMessages = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Message[];
+      setMessages(msgs);
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    });
+
+    return () => {
+      unsubscribeChat();
+      unsubscribeMessages();
+    };
+  }, [chatId, user]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
