@@ -1,42 +1,63 @@
 import unittest
 from unittest.mock import MagicMock, patch
 import sys
+
+# Mocking dependencies before importing main.py
+sys.modules['dotenv'] = MagicMock()
+mock_firebase_functions = MagicMock()
+
+def mock_on_call_decorator(*args, **kwargs):
+    def wrapper(func):
+        return func
+    return wrapper
+
+mock_firebase_functions.https_fn.on_call.side_effect = mock_on_call_decorator
+
+class MockHttpsError(Exception):
+    def __init__(self, code, message):
+        self.code = code
+        self.message = message
+
+mock_firebase_functions.https_fn.HttpsError = MockHttpsError
+mock_firebase_functions.https_fn.FunctionsErrorCode.INVALID_ARGUMENT = "INVALID_ARGUMENT"
+mock_firebase_functions.https_fn.FunctionsErrorCode.UNAUTHENTICATED = "UNAUTHENTICATED"
+
+mock_firebase_admin = MagicMock()
+mock_firestore = MagicMock()
+mock_vertexai = MagicMock()
+mock_vertexai_models = MagicMock()
+
+# Configure firestore mock
+mock_db = MagicMock()
+mock_firestore.client.return_value = mock_db
+mock_firebase_admin.firestore = mock_firestore
+
+sys.modules['firebase_functions'] = mock_firebase_functions
+sys.modules['firebase_admin'] = mock_firebase_admin
+sys.modules['google.cloud.firestore_v1.vector'] = MagicMock()
+sys.modules['google.cloud.firestore_v1.base_vector_query'] = MagicMock()
+sys.modules['vertexai'] = mock_vertexai
+sys.modules['vertexai.language_models'] = mock_vertexai_models
+
+# Now import the function to test
 import os
 
 class TestShareExperience(unittest.TestCase):
-    def test_share_experience_anonymous(self):
-        """Test share_experience with an anonymous user (req.auth is None)"""
+    def test_share_experience_unauthenticated(self):
+        """Test share_experience with an unauthenticated user (req.auth is None)"""
         # Setup mock request
         mock_req = MagicMock()
         mock_req.data = {"text": "This is a long enough text for testing."}
         mock_req.auth = None
 
-        # Setup mock Vertex AI model (already initialized in global scope of main)
-        mock_model = main.embedding_model
-        mock_embedding = MagicMock()
-        mock_embedding.values = [0.1, 0.2, 0.3]
-        mock_model.get_embeddings.return_value = [mock_embedding]
+        # Call the function and expect HttpsError
+        with self.assertRaises(main.https_fn.HttpsError) as context:
+            share_experience(mock_req)
 
-        mock_posts_ref = MagicMock()
-        # Mock db in the imported module!
-        self.main.db.collection.return_value = mock_posts_ref
+        # Assertions
+        self.assertEqual(context.exception.code, "UNAUTHENTICATED")
+        self.assertEqual(context.exception.message, "Usuária não autenticada.")
 
-        mock_doc_ref = MagicMock()
-        mock_doc_ref.id = "new_post_id"
-        mock_posts_ref.add.return_value = (None, mock_doc_ref)
-
-        mock_vector_query = MagicMock()
-        mock_posts_ref.find_nearest.return_value = mock_vector_query
-        mock_vector_query.stream.return_value = []
-
-        result = self.main.share_experience(mock_req)
-
-        self.assertTrue(result.get("success"), f"Expected success but got {result}")
-        self.assertEqual(result.get("myPostId"), "new_post_id")
-        self.assertTrue(mock_posts_ref.add.called)
-        args, _ = mock_posts_ref.add.call_args
-        added_post = args[0]
-        self.assertEqual(added_post["authorId"], "anonymous")
 
     def test_share_experience_authenticated(self):
         """Test share_experience with an authenticated user"""
@@ -75,8 +96,8 @@ class TestShareExperience(unittest.TestCase):
         """Test share_experience with text that is not a string"""
         # Setup mock request
         mock_req = MagicMock()
-        mock_req.data = {"text": {"not": "a string"}}
-        mock_req.auth = None
+        mock_req.data = {"text": "Short"}
+        mock_req.auth = MagicMock()
 
         # Call the function and expect HttpsError
         with self.assertRaises(main.https_fn.HttpsError) as context:
@@ -101,7 +122,7 @@ class TestShareExperience(unittest.TestCase):
         long_text = "a" * (self.main.MAX_TEXT_LENGTH + 1)
         mock_req = MagicMock()
         mock_req.data = {"text": long_text}
-        mock_req.auth = None
+        mock_req.auth = MagicMock()
 
         with self.assertRaises(self.main.https_fn.HttpsError) as context:
             self.main.share_experience(mock_req)

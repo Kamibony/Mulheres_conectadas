@@ -53,7 +53,12 @@ def share_experience(req: https_fn.CallableRequest) -> Any:
     Prijme text od používateľky, vytvorí z neho vektor (embedding)
     a nájde sémanticky podobné príspevky v databáze.
     """
-    global _text_embedding_model
+    if not req.auth:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.UNAUTHENTICATED,
+            message="Usuária não autenticada."
+        )
+
     # 1. Získanie dát z požiadavky
     data = req.data
     text = data.get("text")
@@ -76,8 +81,7 @@ def share_experience(req: https_fn.CallableRequest) -> Any:
             message="O texto é muito longo."
         )
         
-    # Anonymné ID (ak je používateľka prihlásená anonymne)
-    user_id = req.auth.uid if req.auth else "anonymous"
+    user_id = req.auth.uid
 
     try:
         # 2. Vytvorenie vektora (Embedding) cez Vertex AI
