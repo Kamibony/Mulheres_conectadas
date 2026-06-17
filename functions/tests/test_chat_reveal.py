@@ -90,10 +90,16 @@ class TestRevealChat(unittest.TestCase):
         mock_chats_collection = MagicMock()
         mock_chats_collection.document.return_value = mock_chat_ref
 
-        self.main.db.collection.return_value = mock_chats_collection
+        # The global main variables are now private, mock them directly via test class setup
+        # or handle them here. We assume they exist or can be patched.
+        # Ensure _db exists on self.main (we may need to initialize it if this test class doesn't)
+        if not hasattr(self.main, '_db') or self.main._db is None:
+            self.main._db = MagicMock()
+
+        self.main._db.collection.return_value = mock_chats_collection
 
         mock_transaction = MagicMock()
-        self.main.db.transaction.return_value = mock_transaction
+        self.main._db.transaction.return_value = mock_transaction
 
         result = self.main.request_reveal(mock_req)
 
