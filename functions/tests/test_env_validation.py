@@ -23,18 +23,25 @@ class TestVulnerability(unittest.TestCase):
 
     @patch.dict('os.environ', {}, clear=True)
     def test_main_raises_error_without_any_project_id(self):
-        # Verify that importing main without APP_PROJECT_ID or GOOGLE_CLOUD_PROJECT raises ValueError
+        # Verify that calling getter without APP_PROJECT_ID or GOOGLE_CLOUD_PROJECT raises ValueError
+        import main
+        # Reset the internal state
+        main._embedding_model = None
+
         with self.assertRaises(ValueError) as cm:
-            import main
+            main.get_embedding_model()
 
         # Check the error message
         self.assertIn("APP_PROJECT_ID environment variable not set", str(cm.exception))
 
     @patch.dict('os.environ', {'GOOGLE_CLOUD_PROJECT': 'fallback-project'}, clear=True)
     def test_main_uses_fallback_project_id(self):
-        # Verify that importing main with GOOGLE_CLOUD_PROJECT works
+        # Verify that calling getter with GOOGLE_CLOUD_PROJECT works
+        import main
+        main._embedding_model = None
+
         try:
-            import main
+            main.get_embedding_model()
         except ValueError:
             self.fail("Importing main raised ValueError unexpectedly with GOOGLE_CLOUD_PROJECT set!")
 
@@ -45,9 +52,12 @@ class TestVulnerability(unittest.TestCase):
 
     @patch.dict('os.environ', {'APP_PROJECT_ID': 'primary-project'}, clear=True)
     def test_main_uses_primary_project_id(self):
-        # Verify that importing main with APP_PROJECT_ID works
+        # Verify that calling getter with APP_PROJECT_ID works
+        import main
+        main._embedding_model = None
+
         try:
-            import main
+            main.get_embedding_model()
         except ValueError:
             self.fail("Importing main raised ValueError unexpectedly with APP_PROJECT_ID set!")
 

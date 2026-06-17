@@ -52,14 +52,8 @@ def run_benchmark():
 
         mock_req = MagicMock()
         mock_req.data = {"text": "This is a long enough text for testing."}
-        mock_req.auth = MagicMock()
-        mock_req.auth.uid = "user123"
-        main._db = MagicMock()
-        mock_posts_ref = MagicMock()
-        mock_doc_ref = MagicMock()
-        mock_doc_ref.id = "auth_post_id"
-        mock_posts_ref.add.return_value = (MagicMock(), mock_doc_ref)
-        main._db.collection.return_value = mock_posts_ref
+        mock_req.auth = None
+        main.db = MagicMock()
 
         iterations = 5
 

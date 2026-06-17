@@ -50,8 +50,7 @@ class TestShareExperience(unittest.TestCase):
 
     def setUp(self):
         # Reset the global model before each test
-        self.main._embedding_model = MagicMock()
-        self.main._db = MagicMock()
+        self.main._text_embedding_model = None
 
     @patch('main.TextEmbeddingModel')
     def test_share_experience_anonymous(self, mock_model_class):
@@ -77,13 +76,13 @@ class TestShareExperience(unittest.TestCase):
         mock_req.auth.uid = "user123"
 
         # Setup mock Vertex AI model
-        mock_model = self.main._embedding_model
+        mock_model = self.main.embedding_model
         mock_embedding = MagicMock()
         mock_embedding.values = [0.1, 0.2, 0.3]
         mock_model.get_embeddings.return_value = [mock_embedding]
 
         mock_posts_ref = MagicMock()
-        self.main._db.collection.return_value = mock_posts_ref
+        self.main.db.collection.return_value = mock_posts_ref
 
         mock_doc_ref = MagicMock()
         mock_doc_ref.id = "auth_post_id"
@@ -145,9 +144,6 @@ class TestRequestReveal(unittest.TestCase):
         # We need to import main after mocking
         import main
         cls.main = main
-
-    def setUp(self):
-        self.main._db = MagicMock()
 
     def test_request_reveal_identity_invalid_type(self):
         mock_req = MagicMock()
