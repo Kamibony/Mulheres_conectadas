@@ -5,7 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useChatData } from '../../hooks/useChatData';
 import { Button } from '../../components/Button';
 import { requestRevealApi } from '../../services/api';
-import { ArrowLeft, Send, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Send, AlertCircle, X } from 'lucide-react';
 import { Spinner } from '../../components/Spinner';
 
 interface ChatProps {
@@ -21,6 +21,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId, onBack }) => {
   const [identityInput, setIdentityInput] = useState('');
   const [showIdentityPrompt, setShowIdentityPrompt] = useState(false);
   const [revealError, setRevealError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -30,51 +31,6 @@ export const Chat: React.FC<ChatProps> = ({ chatId, onBack }) => {
       return () => clearTimeout(timer);
     }
   }, [error]);
-
-  useEffect(() => {
-    if (!user) return;
-
-    // Listen to chat document
-    const unsubscribeChat = onSnapshot(doc(db, 'chats', chatId), async (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data() as ChatData;
-        setChatData(data);
-
-        if (data.status === 'revealed') {
-          // Fetch identities if revealed
-          const fetchIdentities = async () => {
-            const newIdentities: Record<string, string> = {};
-            await Promise.all(
-              data.users.map(async (uid) => {
-                const identityDoc = await getDoc(doc(db, 'chats', chatId, 'identities', uid));
-                if (identityDoc.exists()) {
-                  newIdentities[uid] = identityDoc.data().identity;
-                }
-              })
-            );
-            setIdentities(newIdentities);
-          };
-          fetchIdentities();
-        }
-      }
-    });
-
-    // Listen to messages
-    const q = query(collection(db, 'chats', chatId, 'messages'), orderBy('timestamp', 'asc'));
-    const unsubscribeMessages = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Message[];
-      setMessages(msgs);
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-    });
-
-    return () => {
-      unsubscribeChat();
-      unsubscribeMessages();
-    };
-  }, [chatId, user]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();

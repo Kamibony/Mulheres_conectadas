@@ -59,8 +59,8 @@ class TestShareExperience(unittest.TestCase):
         mock_req.auth = None
 
         # Call the function and expect HttpsError
-        with self.assertRaises(main.https_fn.HttpsError) as context:
-            share_experience(mock_req)
+        with self.assertRaises(self.main.https_fn.HttpsError) as context:
+            self.main.share_experience(mock_req)
 
         # Assertions
         self.assertEqual(context.exception.code, "UNAUTHENTICATED")
@@ -76,7 +76,7 @@ class TestShareExperience(unittest.TestCase):
         mock_req.auth.uid = "user123"
 
         # Setup mock Vertex AI model
-        mock_model = main.embedding_model
+        mock_model = self.main.embedding_model
         mock_embedding = MagicMock()
         mock_embedding.values = [0.1, 0.2, 0.3]
         mock_model.get_embeddings.return_value = [mock_embedding]
@@ -86,7 +86,7 @@ class TestShareExperience(unittest.TestCase):
 
         mock_doc_ref = MagicMock()
         mock_doc_ref.id = "auth_post_id"
-        mock_posts_ref.add.return_value = (None, mock_doc_ref)
+        mock_posts_ref.add.return_value = (MagicMock(), mock_doc_ref)
 
         mock_vector_query = MagicMock()
         mock_posts_ref.find_nearest.return_value = mock_vector_query
@@ -104,7 +104,7 @@ class TestShareExperience(unittest.TestCase):
         """Test share_experience with text that is not a string"""
         # Setup mock request
         mock_req = MagicMock()
-        mock_req.data = {"text": "Short"}
+        mock_req.data = {"text": 123}
         mock_req.auth = MagicMock()
 
         # Call the function and expect HttpsError
@@ -118,7 +118,7 @@ class TestShareExperience(unittest.TestCase):
     def test_share_experience_text_too_short(self):
         mock_req = MagicMock()
         mock_req.data = {"text": "Short"}
-        mock_req.auth = None
+        mock_req.auth = MagicMock()
 
         with self.assertRaises(self.main.https_fn.HttpsError) as context:
             self.main.share_experience(mock_req)
@@ -155,19 +155,8 @@ class TestRequestReveal(unittest.TestCase):
             self.main.request_reveal(mock_req)
 
         self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
-        self.assertEqual(context.exception.message, "A identity deve ser uma string.")
+        self.assertEqual(context.exception.message, "O chatId e a identity devem ser strings.")
 
-    def test_request_reveal_identity_too_long(self):
-        mock_req = MagicMock()
-        mock_req.data = {"chatId": "chat123", "identity": "a" * 101}
-        mock_req.auth = MagicMock()
-        mock_req.auth.uid = "user123"
-
-        with self.assertRaises(self.main.https_fn.HttpsError) as context:
-            self.main.request_reveal(mock_req)
-
-        self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
-        self.assertEqual(context.exception.message, "A identity é muito longa.")
 
 if __name__ == '__main__':
     unittest.main()

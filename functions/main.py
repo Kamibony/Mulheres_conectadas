@@ -1,4 +1,5 @@
 import os
+from typing import Any
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -237,6 +238,7 @@ def request_reveal(req: https_fn.CallableRequest) -> any:
             code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
             message="O chatId e a identity devem ser strings."
         )
+
 
     try:
         chat_ref = db.collection("chats").document(chat_id)
