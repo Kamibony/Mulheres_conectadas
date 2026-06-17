@@ -1,9 +1,11 @@
-import time
-import os
-import sys
+import unittest
 from unittest.mock import MagicMock, patch
+import sys
+import os
+import time
+import logging
 
-# Mocking dependencies before importing main.py
+# Mocking dependencies
 sys.modules['dotenv'] = MagicMock()
 mock_firebase_functions = MagicMock()
 
@@ -13,21 +15,14 @@ def mock_on_call_decorator(*args, **kwargs):
     return wrapper
 
 mock_firebase_functions.https_fn.on_call.side_effect = mock_on_call_decorator
-
-class MockHttpsError(Exception):
-    def __init__(self, code, message):
-        self.code = code
-        self.message = message
-
-mock_firebase_functions.https_fn.HttpsError = MockHttpsError
 mock_firebase_functions.https_fn.FunctionsErrorCode.INVALID_ARGUMENT = "INVALID_ARGUMENT"
+mock_firebase_functions.https_fn.HttpsError = Exception
 
 mock_firebase_admin = MagicMock()
 mock_firestore = MagicMock()
 mock_vertexai = MagicMock()
 mock_vertexai_models = MagicMock()
 
-# Configure firestore mock
 mock_db = MagicMock()
 mock_firestore.client.return_value = mock_db
 mock_firebase_admin.firestore = mock_firestore
@@ -39,50 +34,56 @@ sys.modules['google.cloud.firestore_v1.base_vector_query'] = MagicMock()
 sys.modules['vertexai'] = mock_vertexai
 sys.modules['vertexai.language_models'] = mock_vertexai_models
 
-os.environ["APP_PROJECT_ID"] = "benchmark-project"
+# Set environment variable
+os.environ["APP_PROJECT_ID"] = "test-project"
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-import main
-from main import share_experience
 
-def mock_from_pretrained(model_name):
-    # Simulate a 1-second delay for loading the model
-    time.sleep(1.0)
-    mock_model = MagicMock()
-    mock_embedding = MagicMock()
-    mock_embedding.values = [0.1, 0.2, 0.3]
-    mock_model.get_embeddings.return_value = [mock_embedding]
-    return mock_model
+def mocked_from_pretrained(model_name):
+    print("      [Mock] Loading model...")
+    time.sleep(1.0) # Simulate 1 second load time
+    return MagicMock()
 
-@patch('main.TextEmbeddingModel.from_pretrained', side_effect=mock_from_pretrained)
-def run_benchmark(mock_pretrained):
-    print("Running benchmark...")
+def run_benchmark():
+    # We want to measure the time including the module initialization
+    print("--- Starting Benchmark (Optimized) ---")
 
-    mock_req = MagicMock()
-    mock_req.data = {"text": "This is a valid text for testing benchmark"}
-    mock_req.auth = MagicMock()
-    mock_req.auth.uid = "test-user"
+    # We mock the class method BEFORE importing main
+    with patch('vertexai.language_models.TextEmbeddingModel.from_pretrained', side_effect=mocked_from_pretrained):
+        start_import = time.perf_counter()
+        if 'main' in sys.modules:
+            del sys.modules['main']
+        import main
+        from main import share_experience
+        import_duration = time.perf_counter() - start_import
+        print(f"Module import (cold start) duration: {import_duration:.4f}s")
 
-    mock_posts_ref = MagicMock()
-    mock_db.collection.return_value = mock_posts_ref
-    mock_doc_ref = MagicMock()
-    mock_doc_ref.id = "benchmark_post_id"
-    mock_posts_ref.add.return_value = (None, mock_doc_ref)
+        # Setup mock request
+        mock_req = MagicMock()
+        mock_req.data = {"text": "This is a long enough text for testing performance."}
+        mock_req.auth = None
 
-    mock_vector_query = MagicMock()
-    mock_posts_ref.find_nearest.return_value = mock_vector_query
-    mock_vector_query.stream.return_value = []
+        # Mock Firestore behavior
+        mock_posts_ref = MagicMock()
+        main.db.collection.return_value = mock_posts_ref
+        mock_posts_ref.add.return_value = (None, MagicMock(id="test_id"))
+        mock_vector_query = MagicMock()
+        mock_posts_ref.find_nearest.return_value = mock_vector_query
+        mock_vector_query.stream.return_value = []
 
-    times = []
-    # Call multiple times to see the difference
-    for i in range(3):
-        start_time = time.time()
+        # First call (should be fast because already initialized during import)
+        start_time = time.perf_counter()
         share_experience(mock_req)
-        end_time = time.time()
-        duration = end_time - start_time
-        times.append(duration)
-        print(f"Call {i+1} took: {duration:.4f} seconds")
+        first_call_duration = time.perf_counter() - start_time
+        print(f"First function call duration: {first_call_duration:.4f}s")
 
-    print(f"Total time for 3 calls: {sum(times):.4f} seconds")
+        # Second call (should also be fast)
+        start_time = time.perf_counter()
+        share_experience(mock_req)
+        second_call_duration = time.perf_counter() - start_time
+        print(f"Second function call duration: {second_call_duration:.4f}s")
+
+    print("--- Benchmark Finished ---")
+    return import_duration, first_call_duration, second_call_duration
 
 if __name__ == "__main__":
     run_benchmark()
