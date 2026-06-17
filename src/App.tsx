@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
-import { AlertCircle, X } from 'lucide-react';
+import { useState } from 'react';
+import { startChatApi } from "./services/api";
 import { Home } from './pages/Home';
 import { Chat } from './pages/Chat/Chat';
-import { startChatApi } from './services/api';
 
 function App() {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);

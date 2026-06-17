@@ -91,7 +91,7 @@ class TestChatFunctions(unittest.TestCase):
 
         mock_doc_ref = MagicMock()
         mock_doc_ref.id = "new_chat_123"
-        mock_chats_collection.add.return_value = (None, mock_doc_ref)
+        mock_chats_collection.add.return_value = (MagicMock(), mock_doc_ref)
 
         def collection_side_effect(name):
             if name == "posts": return mock_posts_collection

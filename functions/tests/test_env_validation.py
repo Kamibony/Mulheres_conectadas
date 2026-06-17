@@ -41,7 +41,7 @@ class TestVulnerability(unittest.TestCase):
         # Verify that vertexai.init was called with the correct project id
         # Access the mock from sys.modules
         vertexai_mock = sys.modules['vertexai']
-        vertexai_mock.init.assert_called_with(project='fallback-project', location='us-central1')
+        vertexai_mock.init.assert_called_with(project='fallback-project', location='southamerica-east1')
 
     @patch.dict('os.environ', {'APP_PROJECT_ID': 'primary-project'}, clear=True)
     def test_main_uses_primary_project_id(self):
@@ -53,7 +53,7 @@ class TestVulnerability(unittest.TestCase):
 
         # Verify that vertexai.init was called with the correct project id
         vertexai_mock = sys.modules['vertexai']
-        vertexai_mock.init.assert_called_with(project='primary-project', location='us-central1')
+        vertexai_mock.init.assert_called_with(project='primary-project', location='southamerica-east1')
 
 if __name__ == '__main__':
     unittest.main()
