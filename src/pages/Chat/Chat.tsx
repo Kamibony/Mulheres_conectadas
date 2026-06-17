@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { collection, doc, onSnapshot, addDoc, serverTimestamp, query, orderBy, getDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../hooks/useAuth';
+import { useChatData } from '../../hooks/useChatData';
 import { Button } from '../../components/Button';
 import { requestRevealApi } from '../../services/api';
 import { ArrowLeft, Send } from 'lucide-react';
@@ -12,24 +13,10 @@ interface ChatProps {
   onBack: () => void;
 }
 
-interface Message {
-  id: string;
-  text: string;
-  senderId: string;
-  timestamp: { seconds: number; nanoseconds: number } | null;
-}
-
-interface ChatData {
-  status: string;
-  users: string[];
-}
-
 export const Chat: React.FC<ChatProps> = ({ chatId, onBack }) => {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { messages, chatData, identities } = useChatData(chatId, user);
   const [newMessage, setNewMessage] = useState('');
-  const [chatData, setChatData] = useState<ChatData | null>(null);
-  const [identities, setIdentities] = useState<Record<string, string>>({});
   const [isRevealing, setIsRevealing] = useState(false);
   const [identityInput, setIdentityInput] = useState('');
   const [showIdentityPrompt, setShowIdentityPrompt] = useState(false);
@@ -37,47 +24,8 @@ export const Chat: React.FC<ChatProps> = ({ chatId, onBack }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!user) return;
-
-    // Listen to chat document
-    const unsubscribeChat = onSnapshot(doc(db, 'chats', chatId), async (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data() as ChatData;
-        setChatData(data);
-
-        if (data.status === 'revealed') {
-          // Fetch identities if revealed
-          const fetchIdentities = async () => {
-            const newIdentities: Record<string, string> = {};
-            for (const uid of data.users) {
-              const identityDoc = await getDoc(doc(db, 'chats', chatId, 'identities', uid));
-              if (identityDoc.exists()) {
-                newIdentities[uid] = identityDoc.data().identity;
-              }
-            }
-            setIdentities(newIdentities);
-          };
-          fetchIdentities();
-        }
-      }
-    });
-
-    // Listen to messages
-    const q = query(collection(db, 'chats', chatId, 'messages'), orderBy('timestamp', 'asc'));
-    const unsubscribeMessages = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Message[];
-      setMessages(msgs);
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-    });
-
-    return () => {
-      unsubscribeChat();
-      unsubscribeMessages();
-    };
-  }, [chatId, user]);
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+  }, [messages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
