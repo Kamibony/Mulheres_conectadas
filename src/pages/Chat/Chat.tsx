@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { collection, doc, onSnapshot, addDoc, serverTimestamp, query, orderBy, getDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../hooks/useAuth';
+import { useChatData } from '../../hooks/useChatData';
 import { Button } from '../../components/Button';
 import { requestRevealApi } from '../../services/api';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, AlertCircle } from 'lucide-react';
 import { Spinner } from '../../components/Spinner';
 
 interface ChatProps {
@@ -12,29 +13,23 @@ interface ChatProps {
   onBack: () => void;
 }
 
-interface Message {
-  id: string;
-  text: string;
-  senderId: string;
-  timestamp: { seconds: number; nanoseconds: number } | null;
-}
-
-interface ChatData {
-  status: string;
-  users: string[];
-}
-
 export const Chat: React.FC<ChatProps> = ({ chatId, onBack }) => {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { messages, chatData, identities } = useChatData(chatId, user);
   const [newMessage, setNewMessage] = useState('');
-  const [chatData, setChatData] = useState<ChatData | null>(null);
-  const [identities, setIdentities] = useState<Record<string, string>>({});
   const [isRevealing, setIsRevealing] = useState(false);
   const [identityInput, setIdentityInput] = useState('');
   const [showIdentityPrompt, setShowIdentityPrompt] = useState(false);
+  const [revealError, setRevealError] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   useEffect(() => {
     if (!user) return;
@@ -49,12 +44,14 @@ export const Chat: React.FC<ChatProps> = ({ chatId, onBack }) => {
           // Fetch identities if revealed
           const fetchIdentities = async () => {
             const newIdentities: Record<string, string> = {};
-            for (const uid of data.users) {
-              const identityDoc = await getDoc(doc(db, 'chats', chatId, 'identities', uid));
-              if (identityDoc.exists()) {
-                newIdentities[uid] = identityDoc.data().identity;
-              }
-            }
+            await Promise.all(
+              data.users.map(async (uid) => {
+                const identityDoc = await getDoc(doc(db, 'chats', chatId, 'identities', uid));
+                if (identityDoc.exists()) {
+                  newIdentities[uid] = identityDoc.data().identity;
+                }
+              })
+            );
             setIdentities(newIdentities);
           };
           fetchIdentities();
@@ -97,12 +94,14 @@ export const Chat: React.FC<ChatProps> = ({ chatId, onBack }) => {
     if (!identityInput.trim()) return;
 
     setIsRevealing(true);
+    setRevealError(null);
     try {
       await requestRevealApi({ chatId, identity: identityInput.trim() });
       setShowIdentityPrompt(false);
+      setIdentityInput(''); // Optionally clear on success
     } catch (error) {
       console.error("Error requesting reveal:", error);
-      alert("Erro ao solicitar revelação.");
+      setRevealError("Erro ao solicitar revelação.");
     } finally {
       setIsRevealing(false);
     }
@@ -119,7 +118,19 @@ export const Chat: React.FC<ChatProps> = ({ chatId, onBack }) => {
   const otherPendingStatus = `reveal_pending_${isUserA ? 'b' : 'a'}`;
 
   return (
-    <div className="flex flex-col h-screen bg-stone-50 text-stone-800">
+    <div className="flex flex-col h-screen bg-stone-50 text-stone-800 relative">
+      {error && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-4 duration-300 w-full max-w-sm px-4">
+          <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm flex items-start gap-3 border border-red-100 shadow-sm">
+            <AlertCircle className="shrink-0 mt-0.5" size={16} />
+            <p className="flex-1">{error}</p>
+            <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600 transition-colors">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
       <header className="bg-white border-b border-stone-200 p-4 flex items-center justify-between shrink-0">
         <button onClick={onBack} className="text-stone-500 hover:text-stone-800 transition-colors">
           <ArrowLeft size={24} />
@@ -138,18 +149,26 @@ export const Chat: React.FC<ChatProps> = ({ chatId, onBack }) => {
           </Button>
         )}
         {showIdentityPrompt && (
-          <div className="flex gap-2 items-center w-full max-w-md">
-            <input
-              type="text"
-              placeholder="Seu Instagram ou WhatsApp"
-              className="flex-1 p-2 rounded-xl border border-stone-200 text-sm"
-              value={identityInput}
-              onChange={(e) => setIdentityInput(e.target.value)}
-            />
-            <Button className="py-2 px-4 w-auto text-sm" isLoading={isRevealing} onClick={handleRequestReveal}>
-              Enviar
-            </Button>
-            <button onClick={() => setShowIdentityPrompt(false)} className="text-stone-400 p-2">Cancelar</button>
+          <div className="flex flex-col gap-2 w-full max-w-md">
+            <div className="flex gap-2 items-center w-full">
+              <input
+                type="text"
+                placeholder="Seu Instagram ou WhatsApp"
+                className="flex-1 p-2 rounded-xl border border-stone-200 text-sm"
+                value={identityInput}
+                onChange={(e) => setIdentityInput(e.target.value)}
+              />
+              <Button className="py-2 px-4 w-auto text-sm" isLoading={isRevealing} onClick={handleRequestReveal}>
+                Enviar
+              </Button>
+              <button onClick={() => { setShowIdentityPrompt(false); setRevealError(null); }} className="text-stone-400 p-2">Cancelar</button>
+            </div>
+            {revealError && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-xl text-xs flex items-start gap-2 border border-red-100 mt-1">
+                <AlertCircle className="shrink-0 mt-0.5" size={14} />
+                <p className="text-left">{revealError}</p>
+              </div>
+            )}
           </div>
         )}
         {chatData.status === myPendingStatus && (
