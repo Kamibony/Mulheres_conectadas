@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { collection, doc, onSnapshot, addDoc, serverTimestamp, query, orderBy, getDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../hooks/useAuth';
+import { useChatData } from '../../hooks/useChatData';
 import { Button } from '../../components/Button';
 import { requestRevealApi } from '../../services/api';
 import { ArrowLeft, Send } from 'lucide-react';
@@ -12,24 +13,10 @@ interface ChatProps {
   onBack: () => void;
 }
 
-interface Message {
-  id: string;
-  text: string;
-  senderId: string;
-  timestamp: { seconds: number; nanoseconds: number } | null;
-}
-
-interface ChatData {
-  status: string;
-  users: string[];
-}
-
 export const Chat: React.FC<ChatProps> = ({ chatId, onBack }) => {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { messages, chatData, identities } = useChatData(chatId, user);
   const [newMessage, setNewMessage] = useState('');
-  const [chatData, setChatData] = useState<ChatData | null>(null);
-  const [identities, setIdentities] = useState<Record<string, string>>({});
   const [isRevealing, setIsRevealing] = useState(false);
   const [identityInput, setIdentityInput] = useState('');
   const [showIdentityPrompt, setShowIdentityPrompt] = useState(false);
