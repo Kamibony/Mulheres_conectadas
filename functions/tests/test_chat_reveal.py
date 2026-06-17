@@ -50,6 +50,28 @@ class TestRevealChat(unittest.TestCase):
             return wrapper
         self.main.firestore.transactional = mock_transactional
 
+    def test_request_reveal_invalid_chat_id_type(self):
+        mock_req = MagicMock()
+        mock_req.auth.uid = "user_a"
+        mock_req.data = {"chatId": {"invalid": "type"}, "identity": "ig_usera"}
+
+        with self.assertRaises(self.main.https_fn.HttpsError) as context:
+            self.main.request_reveal(mock_req)
+
+        self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
+        self.assertEqual(context.exception.message, "O chatId e a identity devem ser strings.")
+
+    def test_request_reveal_invalid_identity_type(self):
+        mock_req = MagicMock()
+        mock_req.auth.uid = "user_a"
+        mock_req.data = {"chatId": "chat_123", "identity": {"invalid": "type"}}
+
+        with self.assertRaises(self.main.https_fn.HttpsError) as context:
+            self.main.request_reveal(mock_req)
+
+        self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
+        self.assertEqual(context.exception.message, "O chatId e a identity devem ser strings.")
+
     def test_request_reveal(self):
         mock_req = MagicMock()
         mock_req.auth.uid = "user_a"

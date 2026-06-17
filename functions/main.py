@@ -132,6 +132,12 @@ def start_chat(req: https_fn.CallableRequest) -> any:
             message="O target_post_id é obrigatório."
         )
 
+    if not isinstance(target_post_id, str):
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="O target_post_id deve ser uma string."
+        )
+
     try:
         # Get target post to find target author
         post_ref = db.collection("posts").document(target_post_id)
@@ -207,6 +213,12 @@ def request_reveal(req: https_fn.CallableRequest) -> any:
         raise https_fn.HttpsError(
             code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
             message="O chatId e a identity são obrigatórios."
+        )
+
+    if not isinstance(chat_id, str) or not isinstance(identity, str):
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="O chatId e a identity devem ser strings."
         )
 
     try:

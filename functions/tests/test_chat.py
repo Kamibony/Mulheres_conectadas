@@ -53,6 +53,18 @@ class TestChatFunctions(unittest.TestCase):
         with self.assertRaises(main.https_fn.HttpsError):
             start_chat(mock_req)
 
+    def test_start_chat_invalid_target_post_id_type(self):
+        mock_req = MagicMock()
+        mock_req.auth.uid = "user_a"
+        # Pass a dictionary instead of a string
+        mock_req.data = {"target_post_id": {"invalid": "type"}}
+
+        with self.assertRaises(main.https_fn.HttpsError) as context:
+            start_chat(mock_req)
+
+        self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
+        self.assertEqual(context.exception.message, "O target_post_id deve ser uma string.")
+
     def test_start_chat_success(self):
         mock_req = MagicMock()
         mock_req.auth.uid = "user_a"
