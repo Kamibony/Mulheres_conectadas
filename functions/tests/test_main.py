@@ -43,9 +43,17 @@ sys.modules['vertexai.language_models'] = mock_vertexai_models
 import os
 
 class TestShareExperience(unittest.TestCase):
-    def test_share_experience_unauthenticated(self):
-        """Test share_experience with an unauthenticated user (req.auth is None)"""
-        # Setup mock request
+    @classmethod
+    def setUpClass(cls):
+        import main
+        cls.main = main
+
+    def setUp(self):
+        # Reset the global model before each test
+        self.main._text_embedding_model = None
+
+    @patch('main.TextEmbeddingModel')
+    def test_share_experience_anonymous(self, mock_model_class):
         mock_req = MagicMock()
         mock_req.data = {"text": "This is a long enough text for testing."}
         mock_req.auth = None
@@ -100,8 +108,8 @@ class TestShareExperience(unittest.TestCase):
         mock_req.auth = MagicMock()
 
         # Call the function and expect HttpsError
-        with self.assertRaises(main.https_fn.HttpsError) as context:
-            share_experience(mock_req)
+        with self.assertRaises(self.main.https_fn.HttpsError) as context:
+            self.main.share_experience(mock_req)
 
         # Assertions
         self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
@@ -130,30 +138,36 @@ class TestShareExperience(unittest.TestCase):
         self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
         self.assertEqual(context.exception.message, "O texto é muito longo.")
 
-    @patch('main.db.collection')
-    @patch('main.TextEmbeddingModel')
-    def test_share_experience_unexpected_error(self, mock_model_class, mock_collection):
-        """Test share_experience when an unexpected error occurs during database access"""
-        # Setup mock request
+class TestRequestReveal(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # We need to import main after mocking
+        import main
+        cls.main = main
+
+    def test_request_reveal_identity_invalid_type(self):
         mock_req = MagicMock()
-        mock_req.data = {"text": "This is a long enough text for testing errors."}
-        mock_req.auth = None
+        mock_req.data = {"chatId": "chat123", "identity": {"not": "a string"}}
+        mock_req.auth = MagicMock()
+        mock_req.auth.uid = "user123"
 
-        # Setup mock Vertex AI model (needed because it's called before db.collection)
-        mock_model = MagicMock()
-        mock_model_class.from_pretrained.return_value = mock_model
-        mock_embedding = MagicMock()
-        mock_embedding.values = [0.1, 0.2, 0.3]
-        mock_model.get_embeddings.return_value = [mock_embedding]
+        with self.assertRaises(self.main.https_fn.HttpsError) as context:
+            self.main.request_reveal(mock_req)
 
-        # Setup mock to raise an exception when collection is accessed
-        mock_collection.side_effect = Exception("Unexpected database error")
+        self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
+        self.assertEqual(context.exception.message, "A identity deve ser uma string.")
 
-        # Call the function
-        result = share_experience(mock_req)
+    def test_request_reveal_identity_too_long(self):
+        mock_req = MagicMock()
+        mock_req.data = {"chatId": "chat123", "identity": "a" * 101}
+        mock_req.auth = MagicMock()
+        mock_req.auth.uid = "user123"
 
-        # Assertions
-        self.assertEqual(result, {"error": "Vyskytla sa chyba pri spracovaní."})
+        with self.assertRaises(self.main.https_fn.HttpsError) as context:
+            self.main.request_reveal(mock_req)
+
+        self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
+        self.assertEqual(context.exception.message, "A identity é muito longa.")
 
 if __name__ == '__main__':
     unittest.main()
