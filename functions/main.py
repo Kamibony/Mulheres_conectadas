@@ -209,6 +209,18 @@ def request_reveal(req: https_fn.CallableRequest) -> any:
             message="O chatId e a identity são obrigatórios."
         )
 
+    if not isinstance(identity, str):
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="A identity deve ser uma string."
+        )
+
+    if len(identity) > 100:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="A identity é muito longa."
+        )
+
     try:
         chat_ref = db.collection("chats").document(chat_id)
 

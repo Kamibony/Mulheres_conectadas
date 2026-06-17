@@ -4,9 +4,14 @@ import sys
 import os
 
 class TestShareExperience(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import main
+        cls.main = main
+
     def setUp(self):
         # Reset the global model before each test
-        main._text_embedding_model = None
+        self.main._text_embedding_model = None
 
     @patch('main.TextEmbeddingModel')
     def test_share_experience_anonymous(self, mock_model_class):
@@ -81,8 +86,8 @@ class TestShareExperience(unittest.TestCase):
         mock_req.auth = None
 
         # Call the function and expect HttpsError
-        with self.assertRaises(main.https_fn.HttpsError) as context:
-            share_experience(mock_req)
+        with self.assertRaises(self.main.https_fn.HttpsError) as context:
+            self.main.share_experience(mock_req)
 
         # Assertions
         self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
@@ -110,6 +115,37 @@ class TestShareExperience(unittest.TestCase):
 
         self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
         self.assertEqual(context.exception.message, "O texto é muito longo.")
+
+class TestRequestReveal(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # We need to import main after mocking
+        import main
+        cls.main = main
+
+    def test_request_reveal_identity_invalid_type(self):
+        mock_req = MagicMock()
+        mock_req.data = {"chatId": "chat123", "identity": {"not": "a string"}}
+        mock_req.auth = MagicMock()
+        mock_req.auth.uid = "user123"
+
+        with self.assertRaises(self.main.https_fn.HttpsError) as context:
+            self.main.request_reveal(mock_req)
+
+        self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
+        self.assertEqual(context.exception.message, "A identity deve ser uma string.")
+
+    def test_request_reveal_identity_too_long(self):
+        mock_req = MagicMock()
+        mock_req.data = {"chatId": "chat123", "identity": "a" * 101}
+        mock_req.auth = MagicMock()
+        mock_req.auth.uid = "user123"
+
+        with self.assertRaises(self.main.https_fn.HttpsError) as context:
+            self.main.request_reveal(mock_req)
+
+        self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
+        self.assertEqual(context.exception.message, "A identity é muito longa.")
 
 if __name__ == '__main__':
     unittest.main()
