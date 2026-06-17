@@ -111,5 +111,30 @@ class TestShareExperience(unittest.TestCase):
         self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
         self.assertEqual(context.exception.message, "O texto é muito longo.")
 
+    @patch('main.db.collection')
+    @patch('main.TextEmbeddingModel')
+    def test_share_experience_unexpected_error(self, mock_model_class, mock_collection):
+        """Test share_experience when an unexpected error occurs during database access"""
+        # Setup mock request
+        mock_req = MagicMock()
+        mock_req.data = {"text": "This is a long enough text for testing errors."}
+        mock_req.auth = None
+
+        # Setup mock Vertex AI model (needed because it's called before db.collection)
+        mock_model = MagicMock()
+        mock_model_class.from_pretrained.return_value = mock_model
+        mock_embedding = MagicMock()
+        mock_embedding.values = [0.1, 0.2, 0.3]
+        mock_model.get_embeddings.return_value = [mock_embedding]
+
+        # Setup mock to raise an exception when collection is accessed
+        mock_collection.side_effect = Exception("Unexpected database error")
+
+        # Call the function
+        result = share_experience(mock_req)
+
+        # Assertions
+        self.assertEqual(result, {"error": "Vyskytla sa chyba pri spracovaní."})
+
 if __name__ == '__main__':
     unittest.main()
