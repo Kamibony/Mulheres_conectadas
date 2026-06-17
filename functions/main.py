@@ -44,6 +44,9 @@ except Exception:
 
 _text_embedding_model = None
 
+# Globálny model pre sémantické embeddingy (Warm Start optimalizácia)
+embedding_model = TextEmbeddingModel.from_pretrained("text-embedding-004")
+
 @https_fn.on_call(region="southamerica-east1", memory=1024)
 def share_experience(req: https_fn.CallableRequest) -> Any:
     """
@@ -78,11 +81,8 @@ def share_experience(req: https_fn.CallableRequest) -> Any:
 
     try:
         # 2. Vytvorenie vektora (Embedding) cez Vertex AI
-        global model_vertex
-        if model_vertex is None:
-            model_vertex = TextEmbeddingModel.from_pretrained("text-embedding-004")
-
-        embeddings = model_vertex.get_embeddings([text])
+        # Využíva globálne inicializovaný model pre lepší výkon
+        embeddings = embedding_model.get_embeddings([text])
         vector_values = embeddings[0].values
         
         posts_ref = db.collection("posts")
