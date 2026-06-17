@@ -42,16 +42,25 @@ try:
 except Exception:
     logger.exception("Failed to initialize Vertex AI model globally")
 
+_text_embedding_model = None
+
 @https_fn.on_call(region="southamerica-east1", memory=1024)
 def share_experience(req: https_fn.CallableRequest) -> Any:
     """
     Prijme text od používateľky, vytvorí z neho vektor (embedding)
     a nájde sémanticky podobné príspevky v databáze.
     """
+    global _text_embedding_model
     # 1. Získanie dát z požiadavky
     data = req.data
     text = data.get("text")
     
+    if not isinstance(text, str):
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="O texto fornecido deve ser uma string."
+        )
+
     if not text or len(text) < MIN_TEXT_LENGTH:
         raise https_fn.HttpsError(
             code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
