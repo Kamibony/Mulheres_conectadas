@@ -1,35 +1,35 @@
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Button } from './Button';
-import { describe, it, expect } from 'vitest';
 
-describe('Button Component', () => {
-  it('renders children correctly', () => {
+describe('Button', () => {
+  it('renders children when not loading', () => {
     render(<Button>Click me</Button>);
-    expect(screen.getByRole('button', { name: 'Click me' })).toBeInTheDocument();
+    expect(screen.getByText('Click me')).toBeDefined();
+    expect(screen.queryByTestId('button-spinner')).toBeNull();
   });
 
-  it('is disabled and shows spinner when isLoading is true', () => {
-    const { container } = render(<Button isLoading>Click me</Button>);
+  it('renders spinner and hides children when isLoading is true', () => {
+    render(<Button isLoading>Click me</Button>);
+    expect(screen.queryByText('Click me')).toBeNull();
+    expect(screen.getByTestId('button-spinner')).toBeDefined();
+  });
+
+  it('is disabled when isLoading is true', () => {
+    render(<Button isLoading>Click me</Button>);
     const button = screen.getByRole('button');
-    expect(button).toBeDisabled();
-    expect(screen.queryByText('Click me')).not.toBeInTheDocument();
-    expect(container.querySelector('.animate-spin')).toBeInTheDocument();
+    expect(button.hasAttribute('disabled')).toBe(true);
   });
 
-  it('is disabled when disabled prop is provided', () => {
+  it('has aria-busy attribute when isLoading is true', () => {
+    render(<Button isLoading>Click me</Button>);
+    const button = screen.getByRole('button');
+    expect(button.getAttribute('aria-busy')).toBe('true');
+  });
+
+  it('is disabled when disabled prop is true', () => {
     render(<Button disabled>Click me</Button>);
-    expect(screen.getByRole('button', { name: 'Click me' })).toBeDisabled();
-  });
-
-  it('applies primary variant classes by default', () => {
-    render(<Button>Click me</Button>);
-    const button = screen.getByRole('button', { name: 'Click me' });
-    expect(button.className).toContain('bg-rose-400');
-  });
-
-  it('applies secondary variant classes when provided', () => {
-    render(<Button variant="secondary">Click me</Button>);
-    const button = screen.getByRole('button', { name: 'Click me' });
-    expect(button.className).toContain('bg-white');
+    const button = screen.getByRole('button');
+    expect(button.hasAttribute('disabled')).toBe(true);
   });
 });

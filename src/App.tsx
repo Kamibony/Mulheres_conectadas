@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { AlertCircle, X } from 'lucide-react';
 import { Home } from './pages/Home';
 import { Chat } from './pages/Chat/Chat';
 import { startChatApi } from './services/api';
