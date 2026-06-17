@@ -25,10 +25,14 @@ export const Button: React.FC<ButtonProps> = ({
     <button
       className={`${baseStyles} ${variants[variant]} ${className}`}
       disabled={disabled || isLoading}
+      aria-busy={isLoading}
       {...props}
     >
       {isLoading ? (
-        <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        <span
+          data-testid="button-spinner"
+          className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"
+        />
       ) : children}
     </button>
   );

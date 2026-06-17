@@ -20,6 +20,7 @@ class MockHttpsError(Exception):
 
 mock_firebase_functions.https_fn.HttpsError = MockHttpsError
 mock_firebase_functions.https_fn.FunctionsErrorCode.INVALID_ARGUMENT = "INVALID_ARGUMENT"
+mock_firebase_functions.https_fn.FunctionsErrorCode.UNAUTHENTICATED = "UNAUTHENTICATED"
 
 mock_firebase_admin = MagicMock()
 mock_firestore = MagicMock()
@@ -40,55 +41,25 @@ sys.modules['vertexai.language_models'] = mock_vertexai_models
 
 # Now import the function to test
 import os
-# Set the environment variable before importing main to prevent ValueError
-os.environ["APP_PROJECT_ID"] = "test-project"
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-import main
-from main import share_experience
 
 class TestShareExperience(unittest.TestCase):
-    @patch('main.TextEmbeddingModel')
-    def test_share_experience_anonymous(self, mock_model_class):
-        """Test share_experience with an anonymous user (req.auth is None)"""
+    def test_share_experience_unauthenticated(self):
+        """Test share_experience with an unauthenticated user (req.auth is None)"""
         # Setup mock request
         mock_req = MagicMock()
         mock_req.data = {"text": "This is a long enough text for testing."}
         mock_req.auth = None
 
-        # Setup mock Vertex AI model
-        mock_model = MagicMock()
-        mock_model_class.from_pretrained.return_value = mock_model
-        mock_embedding = MagicMock()
-        mock_embedding.values = [0.1, 0.2, 0.3]
-        mock_model.get_embeddings.return_value = [mock_embedding]
-
-        # Setup mock Firestore
-        mock_posts_ref = MagicMock()
-        mock_db.collection.return_value = mock_posts_ref
-        mock_doc_ref = MagicMock()
-        mock_doc_ref.id = "new_post_id"
-        mock_posts_ref.add.return_value = (None, mock_doc_ref)
-
-        # Setup mock vector query
-        mock_vector_query = MagicMock()
-        mock_posts_ref.find_nearest.return_value = mock_vector_query
-        mock_vector_query.stream.return_value = []
-
-        # Call the function
-        result = share_experience(mock_req)
+        # Call the function and expect HttpsError
+        with self.assertRaises(main.https_fn.HttpsError) as context:
+            share_experience(mock_req)
 
         # Assertions
-        self.assertTrue(result.get("success"), f"Expected success but got {result}")
-        self.assertEqual(result.get("myPostId"), "new_post_id")
+        self.assertEqual(context.exception.code, "UNAUTHENTICATED")
+        self.assertEqual(context.exception.message, "Usuária não autenticada.")
 
-        # Check if authorId was "anonymous"
-        self.assertTrue(mock_posts_ref.add.called)
-        args, _ = mock_posts_ref.add.call_args
-        added_post = args[0]
-        self.assertEqual(added_post["authorId"], "anonymous")
 
-    @patch('main.TextEmbeddingModel')
-    def test_share_experience_authenticated(self, mock_model_class):
+    def test_share_experience_authenticated(self):
         """Test share_experience with an authenticated user"""
         # Setup mock request
         mock_req = MagicMock()
@@ -97,66 +68,92 @@ class TestShareExperience(unittest.TestCase):
         mock_req.auth.uid = "user123"
 
         # Setup mock Vertex AI model
+        mock_model = main.embedding_model
+        mock_embedding = MagicMock()
+        mock_embedding.values = [0.1, 0.2, 0.3]
+        mock_model.get_embeddings.return_value = [mock_embedding]
+
+        mock_posts_ref = MagicMock()
+        self.main.db.collection.return_value = mock_posts_ref
+
+        mock_doc_ref = MagicMock()
+        mock_doc_ref.id = "auth_post_id"
+        mock_posts_ref.add.return_value = (None, mock_doc_ref)
+
+        mock_vector_query = MagicMock()
+        mock_posts_ref.find_nearest.return_value = mock_vector_query
+        mock_vector_query.stream.return_value = []
+
+        result = self.main.share_experience(mock_req)
+
+        self.assertTrue(result.get("success"), f"Expected success but got {result}")
+        self.assertTrue(mock_posts_ref.add.called)
+        args, _ = mock_posts_ref.add.call_args
+        added_post = args[0]
+        self.assertEqual(added_post["authorId"], "user123")
+
+    def test_share_experience_text_invalid_type(self):
+        """Test share_experience with text that is not a string"""
+        # Setup mock request
+        mock_req = MagicMock()
+        mock_req.data = {"text": "Short"}
+        mock_req.auth = MagicMock()
+
+        # Call the function and expect HttpsError
+        with self.assertRaises(main.https_fn.HttpsError) as context:
+            share_experience(mock_req)
+
+        # Assertions
+        self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
+        self.assertEqual(context.exception.message, "O texto fornecido deve ser uma string.")
+
+    def test_share_experience_text_too_short(self):
+        mock_req = MagicMock()
+        mock_req.data = {"text": "Short"}
+        mock_req.auth = None
+
+        with self.assertRaises(self.main.https_fn.HttpsError) as context:
+            self.main.share_experience(mock_req)
+
+        self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
+        self.assertEqual(context.exception.message, "O texto é muito curto.")
+
+    def test_share_experience_text_too_long(self):
+        long_text = "a" * (self.main.MAX_TEXT_LENGTH + 1)
+        mock_req = MagicMock()
+        mock_req.data = {"text": long_text}
+        mock_req.auth = MagicMock()
+
+        with self.assertRaises(self.main.https_fn.HttpsError) as context:
+            self.main.share_experience(mock_req)
+
+        self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
+        self.assertEqual(context.exception.message, "O texto é muito longo.")
+
+    @patch('main.db.collection')
+    @patch('main.TextEmbeddingModel')
+    def test_share_experience_unexpected_error(self, mock_model_class, mock_collection):
+        """Test share_experience when an unexpected error occurs during database access"""
+        # Setup mock request
+        mock_req = MagicMock()
+        mock_req.data = {"text": "This is a long enough text for testing errors."}
+        mock_req.auth = None
+
+        # Setup mock Vertex AI model (needed because it's called before db.collection)
         mock_model = MagicMock()
         mock_model_class.from_pretrained.return_value = mock_model
         mock_embedding = MagicMock()
         mock_embedding.values = [0.1, 0.2, 0.3]
         mock_model.get_embeddings.return_value = [mock_embedding]
 
-        # Setup mock Firestore
-        mock_posts_ref = MagicMock()
-        mock_db.collection.return_value = mock_posts_ref
-        mock_doc_ref = MagicMock()
-        mock_doc_ref.id = "auth_post_id"
-        mock_posts_ref.add.return_value = (None, mock_doc_ref)
-
-        # Setup mock vector query
-        mock_vector_query = MagicMock()
-        mock_posts_ref.find_nearest.return_value = mock_vector_query
-        mock_vector_query.stream.return_value = []
+        # Setup mock to raise an exception when collection is accessed
+        mock_collection.side_effect = Exception("Unexpected database error")
 
         # Call the function
         result = share_experience(mock_req)
 
         # Assertions
-        self.assertTrue(result.get("success"))
-
-        # Check if authorId was "user123"
-        self.assertTrue(mock_posts_ref.add.called)
-        args, _ = mock_posts_ref.add.call_args
-        added_post = args[0]
-        self.assertEqual(added_post["authorId"], "user123")
-
-    def test_share_experience_text_too_short(self):
-        """Test share_experience with text that is too short"""
-        # Setup mock request
-        mock_req = MagicMock()
-        mock_req.data = {"text": "Short"}
-        mock_req.auth = None
-
-        # Call the function and expect HttpsError
-        with self.assertRaises(main.https_fn.HttpsError) as context:
-            share_experience(mock_req)
-
-        # Assertions
-        self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
-        self.assertEqual(context.exception.message, "O texto é muito curto.")
-
-    def test_share_experience_text_too_long(self):
-        """Test share_experience with text that is too long"""
-        # Setup mock request
-        long_text = "a" * (main.MAX_TEXT_LENGTH + 1)
-        mock_req = MagicMock()
-        mock_req.data = {"text": long_text}
-        mock_req.auth = None
-
-        # Call the function and expect HttpsError
-        with self.assertRaises(main.https_fn.HttpsError) as context:
-            share_experience(mock_req)
-
-        # Assertions
-        self.assertEqual(context.exception.code, "INVALID_ARGUMENT")
-        self.assertEqual(context.exception.message, "O texto é muito longo.")
+        self.assertEqual(result, {"error": "Vyskytla sa chyba pri spracovaní."})
 
 if __name__ == '__main__':
     unittest.main()

@@ -9,36 +9,65 @@ from google.cloud.firestore_v1.vector import Vector
 from google.cloud.firestore_v1.base_vector_query import DistanceMeasure
 import vertexai
 from vertexai.language_models import TextEmbeddingModel
+import logging
+
+# Konfigurácia logovania
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Inicializácia Firebase a Firestore
 try:
     initialize_app()
     db = firestore.client()
-except Exception as e:
-    print(f"Warning: Firebase/Firestore initialization failed: {e}")
+except Exception:
+    logger.exception("Firebase/Firestore initialization failed")
     db = None
 
 # Konštanty pre validáciu a vyhľadávanie
 MIN_TEXT_LENGTH = 10
 MAX_TEXT_LENGTH = 1000
 
-# Inicializácia Vertex AI (použije ID projektu z prostredia Firebase)
-# Tu musíš zadať lokáciu, ideálne rovnakú, akú si vybral pri tvorbe Firestore
+# Inicializácia Vertex AI
 project_id = os.environ.get("APP_PROJECT_ID") or os.environ.get("GOOGLE_CLOUD_PROJECT")
 if not project_id:
     raise ValueError("APP_PROJECT_ID environment variable not set.")
-vertexai.init(project=project_id, location="us-central1") # Zmeň na "southamerica-east1", ak si databázu dal do Brazílie
+
+vertexai.init(project=project_id, location="southamerica-east1")
+
+# Globálna instancia modelu pre Vertex AI (využíva warm starts)
+model_vertex = None
+try:
+    model_vertex = TextEmbeddingModel.from_pretrained("text-embedding-004")
+except Exception:
+    logger.exception("Failed to initialize Vertex AI model globally")
+
+_text_embedding_model = None
+
+# Globálny model pre sémantické embeddingy (Warm Start optimalizácia)
+embedding_model = TextEmbeddingModel.from_pretrained("text-embedding-004")
 
 @https_fn.on_call(region="southamerica-east1", memory=1024)
-def share_experience(req: https_fn.CallableRequest) -> any:
+def share_experience(req: https_fn.CallableRequest) -> Any:
     """
     Prijme text od používateľky, vytvorí z neho vektor (embedding)
     a nájde sémanticky podobné príspevky v databáze.
     """
+    if not req.auth:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.UNAUTHENTICATED,
+            message="Usuária não autenticada."
+        )
+
     # 1. Získanie dát z požiadavky
     data = req.data
     text = data.get("text")
     
+    if not isinstance(text, str):
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="O texto fornecido deve ser uma string."
+        )
+
     if not text or len(text) < MIN_TEXT_LENGTH:
         raise https_fn.HttpsError(
             code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
@@ -51,13 +80,12 @@ def share_experience(req: https_fn.CallableRequest) -> any:
             message="O texto é muito longo."
         )
         
-    # Anonymné ID (ak je používateľka prihlásená anonymne)
-    user_id = req.auth.uid if req.auth else "anonymous"
+    user_id = req.auth.uid
 
     try:
         # 2. Vytvorenie vektora (Embedding) cez Vertex AI
-        model = TextEmbeddingModel.from_pretrained("text-embedding-004")
-        embeddings = model.get_embeddings([text])
+        # Využíva globálne inicializovaný model pre lepší výkon
+        embeddings = embedding_model.get_embeddings([text])
         vector_values = embeddings[0].values
         
         posts_ref = db.collection("posts")
@@ -97,6 +125,6 @@ def share_experience(req: https_fn.CallableRequest) -> any:
             "resonances": matches
         }
 
-    except Exception as e:
-        print(f"Chyba: {str(e)}")
+    except Exception:
+        logger.exception("An error occurred during share_experience processing")
         return {"error": "Vyskytla sa chyba pri spracovaní."}
