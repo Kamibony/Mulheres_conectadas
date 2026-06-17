@@ -12,9 +12,10 @@ interface HomeProps {
   onStartChat: (targetPostId: string) => void;
   isStartingChat: boolean;
   startingChatId: string | null;
+  chatError?: string | null;
 }
 
-export const Home: React.FC<HomeProps> = ({ onStartChat, isStartingChat, startingChatId }) => {
+export const Home: React.FC<HomeProps> = ({ onStartChat, isStartingChat, startingChatId, chatError: incomingChatError }) => {
   const { loading: authLoading } = useAuth();
   const { share, state, resonances, error, reset } = useResonance();
   const [text, setText] = useState('');
@@ -86,6 +87,13 @@ export const Home: React.FC<HomeProps> = ({ onStartChat, isStartingChat, startin
                 <h2 className="text-2xl font-serif text-stone-800 mb-2">Você não está sozinha</h2>
                 <p className="text-stone-500 text-sm">Encontramos {resonances.length} histórias que ressoam com a sua.</p>
               </div>
+
+              {incomingChatError && (
+                <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm flex items-start gap-3 border border-red-100">
+                  <AlertCircle className="shrink-0 mt-0.5" size={16} />
+                  <p>{incomingChatError}</p>
+                </div>
+              )}
 
               <div className="space-y-4">
                 {resonances.map((resonance) => (
