@@ -3,8 +3,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from typing import Any
-from firebase_functions import https_fn, options
+from firebase_functions import https_fn
 from firebase_admin import initialize_app, firestore
 from google.cloud.firestore_v1.vector import Vector
 from google.cloud.firestore_v1.base_vector_query import DistanceMeasure
