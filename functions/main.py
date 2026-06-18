@@ -223,8 +223,52 @@ def start_chat(req: https_fn.CallableRequest) -> Any:
         return {"error": "Vyskytla sa chyba pri spracovaní."}
 
 
+
+@firestore.transactional
+def _update_chat_status_tx(transaction, chat_ref, req_auth_uid):
+    snapshot = chat_ref.get(transaction=transaction)
+    if not snapshot.exists:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.NOT_FOUND,
+            message="Chat não encontrado."
+        )
+
+    chat_data = snapshot.to_dict()
+    users = chat_data.get("users", [])
+    current_status = chat_data.get("status", "anonymous")
+
+    if req_auth_uid not in users:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.PERMISSION_DENIED,
+            message="Acesso negado."
+        )
+
+    if current_status == "revealed":
+        return "revealed"
+
+    uid_index = users.index(req_auth_uid)
+    user_label = "a" if uid_index == 0 else "b"
+    other_label = "b" if uid_index == 0 else "a"
+
+    pending_status = f"reveal_pending_{user_label}"
+    other_pending_status = f"reveal_pending_{other_label}"
+
+    new_status = current_status
+    if current_status == "anonymous":
+        new_status = pending_status
+    elif current_status == other_pending_status:
+        new_status = "revealed"
+    elif current_status == pending_status:
+        pass # Already requested
+
+    if new_status != current_status:
+        transaction.update(chat_ref, {"status": new_status})
+
+    return new_status
+
 @https_fn.on_call(region="southamerica-east1", memory=256)
 def request_reveal(req: https_fn.CallableRequest) -> Any:
+
     """
     Požiada o odhalenie identity.
     """
@@ -255,49 +299,7 @@ def request_reveal(req: https_fn.CallableRequest) -> Any:
     try:
         chat_ref = db.collection("chats").document(chat_id)
 
-        @firestore.transactional
-        def update_chat_status(transaction, chat_ref):
-            snapshot = chat_ref.get(transaction=transaction)
-            if not snapshot.exists:
-                raise https_fn.HttpsError(
-                    code=https_fn.FunctionsErrorCode.NOT_FOUND,
-                    message="Chat não encontrado."
-                )
-
-            chat_data = snapshot.to_dict()
-            users = chat_data.get("users", [])
-            current_status = chat_data.get("status", "anonymous")
-
-            if req.auth.uid not in users:
-                raise https_fn.HttpsError(
-                    code=https_fn.FunctionsErrorCode.PERMISSION_DENIED,
-                    message="Acesso negado."
-                )
-
-            if current_status == "revealed":
-                return "revealed"
-
-            uid_index = users.index(req.auth.uid)
-            user_label = "a" if uid_index == 0 else "b"
-            other_label = "b" if uid_index == 0 else "a"
-
-            pending_status = f"reveal_pending_{user_label}"
-            other_pending_status = f"reveal_pending_{other_label}"
-
-            new_status = current_status
-            if current_status == "anonymous":
-                new_status = pending_status
-            elif current_status == other_pending_status:
-                new_status = "revealed"
-            elif current_status == pending_status:
-                pass # Already requested
-
-            if new_status != current_status:
-                transaction.update(chat_ref, {"status": new_status})
-
-            return new_status
-
-        new_status = update_chat_status(db.transaction(), chat_ref)
+        new_status = _update_chat_status_tx(db.transaction(), chat_ref, req.auth.uid)
 
         # Save identity
         identity_ref = db.collection("chats").document(chat_id).collection("identities").document(req.auth.uid)
