@@ -140,7 +140,7 @@ def share_experience(req: https_fn.CallableRequest) -> Any:
         print(f"Chyba: {str(e)}")
         return {"error": "Vyskytla sa chyba pri spracovaní."}
 
-@https_fn.on_call(region="southamerica-east1", memory=256)
+@https_fn.on_call(region="southamerica-east1", memory=1024)
 def start_chat(req: https_fn.CallableRequest) -> Any:
     """
     Začne chat s autorkou príspevku.
@@ -265,7 +265,7 @@ def _update_chat_status_tx(transaction, chat_ref, req_auth_uid):
 
     return new_status
 
-@https_fn.on_call(region="southamerica-east1", memory=256)
+@https_fn.on_call(region="southamerica-east1", memory=1024)
 def request_reveal(req: https_fn.CallableRequest) -> Any:
 
     """
