@@ -224,7 +224,6 @@ def start_chat(req: https_fn.CallableRequest) -> Any:
 
 
 
-@firestore.transactional
 def _update_chat_status_tx(transaction, chat_ref, req_auth_uid):
     snapshot = chat_ref.get(transaction=transaction)
     if not snapshot.exists:
@@ -299,7 +298,8 @@ def request_reveal(req: https_fn.CallableRequest) -> Any:
     try:
         chat_ref = db.collection("chats").document(chat_id)
 
-        new_status = _update_chat_status_tx(db.transaction(), chat_ref, req.auth.uid)
+        transactional_update = firestore.transactional(_update_chat_status_tx)
+        new_status = transactional_update(db.transaction(), chat_ref, req.auth.uid)
 
         # Save identity
         identity_ref = db.collection("chats").document(chat_id).collection("identities").document(req.auth.uid)
