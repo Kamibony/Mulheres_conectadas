@@ -35,10 +35,10 @@ export const Home: React.FC<HomeProps> = ({ onStartChat, isStartingChat, startin
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-800 font-sans selection:bg-rose-100 pb-20">
+    <div className="min-h-screen bg-stone-50 text-stone-800 font-sans selection:bg-blue-100 pb-20">
       <div className="max-w-md mx-auto px-4 pt-6">
         <header className="flex justify-center mb-6">
-          <span className="font-serif text-rose-400 font-bold text-xl tracking-tight">Mulheres Conectadas</span>
+          <span className="font-serif text-blue-500 font-bold text-xl tracking-tight">Igreja Connect</span>
         </header>
 
         <main>
@@ -49,7 +49,7 @@ export const Home: React.FC<HomeProps> = ({ onStartChat, isStartingChat, startin
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="relative">
                   <TextArea
-                    placeholder="Escreva aqui o que você está sentindo..."
+                    placeholder="Escreva aqui seu pedido de oração ou o que está no seu coração..."
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     disabled={state === 'loading'}
@@ -75,7 +75,7 @@ export const Home: React.FC<HomeProps> = ({ onStartChat, isStartingChat, startin
                   isLoading={state === 'loading'}
                 >
                   <span className="flex items-center gap-2">
-                    Encontrar histórias
+                    Encontrar apoio
                     <ArrowRight size={18} />
                   </span>
                 </Button>
@@ -84,8 +84,8 @@ export const Home: React.FC<HomeProps> = ({ onStartChat, isStartingChat, startin
           ) : (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
               <div className="text-center py-6">
-                <h2 className="text-2xl font-serif text-stone-800 mb-2">Você não está sozinha</h2>
-                <p className="text-stone-500 text-sm">Encontramos {resonances.length} histórias que ressoam com a sua.</p>
+                <h2 className="text-2xl font-serif text-stone-800 mb-2">Você não está sozinho</h2>
+                <p className="text-stone-500 text-sm">Encontramos {resonances.length} pedidos que ressoam com o seu.</p>
               </div>
 
               {incomingChatError && (
@@ -112,7 +112,7 @@ export const Home: React.FC<HomeProps> = ({ onStartChat, isStartingChat, startin
                   setText('');
                   reset();
                 }}>
-                  Escrever nova experiência
+                  Fazer novo pedido de oração
                 </Button>
               </div>
             </div>
