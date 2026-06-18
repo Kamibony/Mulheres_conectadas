@@ -141,7 +141,7 @@ def share_experience(req: https_fn.CallableRequest) -> Any:
         return {"error": "Vyskytla sa chyba pri spracovaní."}
 
 @https_fn.on_call(region="southamerica-east1", memory=256)
-def start_chat(req: https_fn.CallableRequest) -> any:
+def start_chat(req: https_fn.CallableRequest) -> Any:
     """
     Začne chat s autorkou príspevku.
     """
@@ -224,7 +224,7 @@ def start_chat(req: https_fn.CallableRequest) -> any:
 
 
 @https_fn.on_call(region="southamerica-east1", memory=256)
-def request_reveal(req: https_fn.CallableRequest) -> any:
+def request_reveal(req: https_fn.CallableRequest) -> Any:
     """
     Požiada o odhalenie identity.
     """
