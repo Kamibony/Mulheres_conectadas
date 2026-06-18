@@ -30,6 +30,11 @@ class TestRevealChat(unittest.TestCase):
         self.mock_firestore = MagicMock()
         self.mock_db = MagicMock()
         self.mock_firestore.client.return_value = self.mock_db
+        def mock_transactional(func):
+            def wrapper(transaction, *args, **kwargs):
+                return func(transaction, *args, **kwargs)
+            return wrapper
+        self.mock_firestore.transactional = mock_transactional
         self.mock_firebase_admin.firestore = self.mock_firestore
         sys.modules['firebase_admin'] = self.mock_firebase_admin
         sys.modules['google.cloud.firestore_v1.vector'] = MagicMock()
