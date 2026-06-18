@@ -1,2 +1,15 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
+
+@theme {
+  --color-rose-50: var(--color-slate-50);
+  --color-rose-100: var(--color-slate-100);
+  --color-rose-200: var(--color-slate-200);
+  --color-rose-300: var(--color-slate-300);
+  --color-rose-400: var(--color-slate-400);
+  --color-rose-500: var(--color-slate-500);
+  --color-rose-600: var(--color-slate-600);
+  --color-rose-700: var(--color-slate-700);
+  --color-rose-800: var(--color-slate-800);
+  --color-rose-900: var(--color-slate-900);
+}

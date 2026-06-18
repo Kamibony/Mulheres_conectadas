@@ -11,10 +11,10 @@ interface CardProps {
 
 export const Card: React.FC<CardProps> = ({ id, text, onChat, isChatLoading }) => {
   return (
-    <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-sm border border-rose-100 mb-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-sm border border-blue-100 mb-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-start gap-4 flex-col sm:flex-row">
         <div className="flex items-start gap-4 flex-1">
-          <div className="bg-rose-50 p-2 rounded-xl text-rose-300 shrink-0">
+          <div className="bg-blue-50 p-2 rounded-xl text-blue-400 shrink-0">
             <HeartHandshake size={20} />
           </div>
           <p className="text-stone-600 leading-relaxed flex-1">{text}</p>

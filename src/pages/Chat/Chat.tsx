@@ -128,11 +128,11 @@ export const Chat: React.FC<ChatProps> = ({ chatId, onBack }) => {
           </div>
         )}
         {chatData.status === myPendingStatus && (
-          <span className="text-stone-500">Você solicitou a revelação da identidade. Aguardando a outra pessoa.</span>
+          <span className="text-stone-500">Você solicitou a revelação da identidade. Aguardando o outro membro.</span>
         )}
         {chatData.status === otherPendingStatus && !showIdentityPrompt && (
           <div className="flex items-center gap-4 flex-col sm:flex-row">
-            <span className="text-rose-600 font-medium">A outra pessoa quer revelar a identidade!</span>
+            <span className="text-blue-600 font-medium">O outro membro quer revelar a identidade!</span>
             <Button variant="primary" className="py-1 px-4 text-xs w-auto" onClick={() => setShowIdentityPrompt(true)}>
               Aceitar e Revelar
             </Button>
@@ -140,7 +140,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId, onBack }) => {
         )}
         {chatData.status === 'revealed' && (
           <div className="text-green-600 font-medium bg-green-50 px-4 py-2 rounded-xl border border-green-100">
-            Identidades reveladas! Você é {identities[user.uid]} e a outra pessoa é {identities[chatData.users.find(u => u !== user.uid) || '']}.
+            Identidades reveladas! Você é {identities[user.uid]} e o outro membro é {identities[chatData.users.find(u => u !== user.uid) || '']}.
           </div>
         )}
       </div>
@@ -153,7 +153,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId, onBack }) => {
               <div className="text-xs text-stone-400 mb-1 ml-1 mr-1">
                 {isMine ? 'Você' : otherLabel}
               </div>
-              <div className={`px-4 py-2 rounded-2xl max-w-[80%] ${isMine ? 'bg-rose-400 text-white rounded-tr-sm' : 'bg-white border border-stone-200 rounded-tl-sm'}`}>
+              <div className={`px-4 py-2 rounded-2xl max-w-[80%] ${isMine ? 'bg-blue-400 text-white rounded-tr-sm' : 'bg-white border border-stone-200 rounded-tl-sm'}`}>
                 {msg.text}
               </div>
             </div>
@@ -168,7 +168,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId, onBack }) => {
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder="Digite sua mensagem..."
-          className="flex-1 bg-stone-50 border border-stone-200 rounded-full px-4 py-2 outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-300 transition-all"
+          className="flex-1 bg-stone-50 border border-stone-200 rounded-full px-4 py-2 outline-none focus:border-blue-300 focus:ring-1 focus:ring-blue-300 transition-all"
         />
         <Button type="submit" disabled={!newMessage.trim()} className="w-12 h-12 p-0 rounded-full flex items-center justify-center shrink-0">
           <Send size={18} className="-ml-0.5" />
