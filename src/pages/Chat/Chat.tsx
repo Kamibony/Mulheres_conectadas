@@ -68,6 +68,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId, onBack }) => {
   }
 
   const isUserA = chatData.users[0] === user.uid;
+  const otherUserId = isUserA ? chatData.users[1] : chatData.users[0];
   const otherLabel = isUserA ? 'User B' : 'User A';
 
   const myPendingStatus = `reveal_pending_${isUserA ? 'a' : 'b'}`;
@@ -92,7 +93,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId, onBack }) => {
           <ArrowLeft size={24} />
         </button>
         <div className="font-medium text-lg">
-          Chat com {chatData.status === 'revealed' ? identities[chatData.users.find(u => u !== user.uid) || ''] || otherLabel : otherLabel}
+          Chat com {chatData.status === 'revealed' ? identities[otherUserId] || otherLabel : otherLabel}
         </div>
         <div className="w-6" /> {/* Spacer for centering */}
       </header>
@@ -140,7 +141,7 @@ export const Chat: React.FC<ChatProps> = ({ chatId, onBack }) => {
         )}
         {chatData.status === 'revealed' && (
           <div className="text-green-600 font-medium bg-green-50 px-4 py-2 rounded-xl border border-green-100">
-            Identidades reveladas! Você é {identities[user.uid]} e o outro membro é {identities[chatData.users.find(u => u !== user.uid) || '']}.
+            Identidades reveladas! Você é {identities[user.uid]} e o outro membro é {identities[otherUserId]}.
           </div>
         )}
       </div>
