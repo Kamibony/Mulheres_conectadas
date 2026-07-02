@@ -33,12 +33,13 @@ export const useChatData = (chatId: string, user: User | null | undefined) => {
           // Fetch identities if revealed
           const fetchIdentities = async () => {
             const newIdentities: Record<string, string> = {};
-            for (const uid of data.users) {
+            const promises = data.users.map(async (uid) => {
               const identityDoc = await getDoc(doc(db, 'chats', chatId, 'identities', uid));
               if (identityDoc.exists()) {
                 newIdentities[uid] = identityDoc.data().identity;
               }
-            }
+            });
+            await Promise.all(promises);
             setIdentities(newIdentities);
           };
           fetchIdentities();
